@@ -56,11 +56,51 @@ export const useGameStore = create<GameStore>((set) => ({
     currentDrawing: drawing,
   })),
 
-  switchToGuessing: () => set((state) => ({
-    gamePhase: 'give-to-guessers',
-    isDrawingPhase: false,
-    currentDrawing: state.currentDrawing,
-  })),
+  switchToGuessing: async () => {
+    set((state) => {
+      if (!state.currentDrawing) return state;
+
+      // Send the drawing to AI for analysis
+      fetch('http://localhost:8000/analyze-drawing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_data: state.currentDrawing,
+          prompt: `This is a drawing from a word-guessing game. The drawing represents one of these words: ${state.phrases.join(', ')}. Which word is being drawn? Respond with just the word, nothing else.`
+        }),
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to analyze drawing');
+        }
+        return response.json();
+      })
+      .then(result => {
+        if (result.success) {
+          set(state => ({
+            ...state,
+            gamePhase: 'give-to-guessers',
+            isDrawingPhase: false,
+            aiGuess: result.word,
+          }));
+        }
+      })
+      .catch(error => {
+        console.error('Error analyzing drawing:', error);
+        // Still switch to guessing phase even if AI analysis fails
+        set(state => ({
+          ...state,
+          gamePhase: 'give-to-guessers',
+          isDrawingPhase: false,
+        }));
+      });
+
+      // Return current state while the fetch is in progress
+      return state;
+    });
+  },
 
   startGuessing: () => set((state) => ({
     gamePhase: 'guessing',
