@@ -9,8 +9,6 @@ export const Timer: React.FC<TimerProps> = ({ duration, onTimeUp }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
-    setTimeLeft(duration);
-    
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -23,7 +21,7 @@ export const Timer: React.FC<TimerProps> = ({ duration, onTimeUp }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [duration, onTimeUp]);
+  }, [onTimeUp]);
 
   return (
     <div className="text-2xl font-bold">

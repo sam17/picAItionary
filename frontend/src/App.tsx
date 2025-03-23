@@ -188,7 +188,11 @@ function App() {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-4">
               <TimerIcon className="w-6 h-6" />
-              <Timer duration={isDrawingPhase ? 30 : 60} onTimeUp={handleTimeUp} />
+              <Timer 
+                key={`${gamePhase}-${isDrawingPhase}`} 
+                duration={isDrawingPhase ? 30 : 60} 
+                onTimeUp={handleTimeUp} 
+              />
             </div>
             <div className="text-lg">
               Rounds left: {attemptsLeft} | Score: {score}
