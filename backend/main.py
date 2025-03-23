@@ -1,72 +1,53 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict
-import json
+from pydantic import BaseModel
+from image_analysis import analyze_drawing
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Check for OpenAI API key
+if not os.getenv("OPENAI_API_KEY"):
+    raise RuntimeError(
+        "OPENAI_API_KEY not found in environment variables. "
+        "Please create a .env file with your OpenAI API key."
+    )
 
 app = FastAPI()
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend URL
+    allow_origins=["*"],  # Allow all origins in development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Store active connections
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-
-    async def connect(self, websocket: WebSocket, client_id: str):
-        await websocket.accept()
-        self.active_connections[client_id] = websocket
-
-    def disconnect(self, client_id: str):
-        if client_id in self.active_connections:
-            del self.active_connections[client_id]
-
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections.values():
-            await connection.send_json(message)
-
-manager = ConnectionManager()
+class ImageAnalysisRequest(BaseModel):
+    image_data: str
+    prompt: str | None = None
 
 @app.get("/")
 async def root():
     return {"message": "PicAictionary Backend API"}
 
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await manager.connect(websocket, client_id)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # Handle different message types
-            if message["type"] == "draw":
-                # Broadcast drawing data to all other clients
-                await manager.broadcast({
-                    "type": "draw",
-                    "client_id": client_id,
-                    "data": message["data"]
-                })
-            elif message["type"] == "guess":
-                # Handle guess submission
-                await manager.broadcast({
-                    "type": "guess",
-                    "client_id": client_id,
-                    "guess": message["guess"]
-                })
-            
-    except WebSocketDisconnect:
-        manager.disconnect(client_id)
-        await manager.broadcast({
-            "type": "disconnect",
-            "client_id": client_id
-        })
+@app.post("/analyze-drawing")
+async def analyze_drawing_endpoint(request: ImageAnalysisRequest):
+    """
+    Analyze a drawing using OpenAI's GPT-4 Vision model.
+    """
+    if not request.image_data:
+        raise HTTPException(status_code=400, detail="Image data is required")
+    
+    result = analyze_drawing(request.image_data, request.prompt)
+    
+    if not result["success"]:
+        raise HTTPException(status_code=500, detail=result["error"])
+    
+    return result
 
 if __name__ == "__main__":
     import uvicorn

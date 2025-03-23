@@ -18,6 +18,7 @@ export interface GameState {
   currentDrawing: string | null;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean;
+  aiGuess: string | null;
 }
 
 export interface GameStore extends GameState {
