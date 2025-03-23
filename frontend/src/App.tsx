@@ -23,7 +23,7 @@ function App() {
     continueToNextRound,
   } = useGameStore();
 
-  const [maxAttempts, setMaxAttempts] = useState(10);
+  const [maxRounds, setMaxRounds] = useState(10);
   const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
 
   const handleTimeUp = () => {
@@ -47,19 +47,19 @@ function App() {
           </h1>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Number of Attempts:
+              Number of Rounds:
             </label>
             <input
               type="number"
-              value={maxAttempts}
-              onChange={(e) => setMaxAttempts(Number(e.target.value))}
+              value={maxRounds}
+              onChange={(e) => setMaxRounds(Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-md"
               min="1"
               max="20"
             />
           </div>
           <button
-            onClick={() => startGame(maxAttempts)}
+            onClick={() => startGame(maxRounds)}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
             Start Game
@@ -108,18 +108,17 @@ function App() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-96 text-center">
           <h2 className="text-2xl font-bold mb-4">
-            {lastGuessCorrect ? '🎉 Correct!' : '❌ Wrong!'}
+            {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
           </h2>
           <p className="mb-4">The word was: <strong>{phrases[selectedPhraseIndex!]}</strong></p>
           <p className="text-lg mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
-              <p className="mb-4">Pass the device back to the drawer for the next round!</p>
               <button
                 onClick={continueToNextRound}
                 className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
               >
-                Continue
+                Next Round
               </button>
             </>
           ) : (
@@ -148,15 +147,15 @@ function App() {
               <Timer duration={isDrawingPhase ? 30 : 60} onTimeUp={handleTimeUp} />
             </div>
             <div className="text-lg">
-              Attempts left: {attemptsLeft} | Score: {score}
+              Rounds left: {attemptsLeft} | Score: {score}
             </div>
           </div>
 
           {isDrawingPhase ? (
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">All possible words:</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <h2 className="text-xl font-semibold mb-4">Make them guess the green word!</h2>
+                <div className="grid grid-cols-4 gap-4">
                   {phrases.map((phrase, index) => (
                     <div
                       key={index}
@@ -167,7 +166,6 @@ function App() {
                       }`}
                     >
                       {phrase}
-                      {index === selectedPhraseIndex && ' (Draw this!)'}
                     </div>
                   ))}
                 </div>
@@ -190,7 +188,7 @@ function App() {
               <div className="flex justify-center mb-4">
                 <DrawingCanvas isEnabled={false} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {phrases.map((phrase, index) => (
                   <button
                     key={index}
