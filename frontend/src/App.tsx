@@ -16,6 +16,7 @@ function App() {
     lastGuessCorrect,
     aiGuess,
     selectedGuess,
+    currentCorrectPhrase,
     startGame,
     startDrawing,
     makeGuess,
@@ -143,7 +144,7 @@ function App() {
               <div
                 key={index}
                 className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] ${
-                  index === selectedPhraseIndex
+                  phrase === currentCorrectPhrase
                     ? 'bg-green-500 text-white font-bold'
                     : selectedGuess === index
                     ? 'bg-red-500 text-white font-bold'

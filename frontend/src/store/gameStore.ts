@@ -17,6 +17,7 @@ export const useGameStore = create<GameStore>((set) => ({
   lastGuessCorrect: false,
   aiGuess: null,
   selectedGuess: null,
+  currentCorrectPhrase: null,
 
   startGame: async (maxAttempts) => {
     try {
@@ -115,6 +116,7 @@ export const useGameStore = create<GameStore>((set) => ({
     score: correct ? state.score + 1 : state.score,
     gamePhase: 'show-result',
     selectedGuess: guessIndex,
+    currentCorrectPhrase: state.phrases[state.selectedPhraseIndex!],
   })),
 
   continueToNextRound: async () => {
@@ -132,6 +134,8 @@ export const useGameStore = create<GameStore>((set) => ({
         isDrawingPhase: true,
         currentDrawing: null,
         aiGuess: null,
+        selectedGuess: null,
+        currentCorrectPhrase: null,
       }));
     } catch (error) {
       console.error('Error fetching new clues:', error);
@@ -153,6 +157,7 @@ export const useGameStore = create<GameStore>((set) => ({
     lastGuessCorrect: false,
     aiGuess: null,
     selectedGuess: null,
+    currentCorrectPhrase: null,
   })),
 
   setIsDrawingPhase: (isDrawing: boolean) => set(() => ({
