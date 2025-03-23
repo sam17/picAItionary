@@ -15,6 +15,7 @@ function App() {
     gamePhase,
     lastGuessCorrect,
     aiGuess,
+    selectedGuess,
     startGame,
     startDrawing,
     makeGuess,
@@ -25,16 +26,16 @@ function App() {
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(10);
-  const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
+  const [localSelectedGuess, setLocalSelectedGuess] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleTimeUp = () => {
     if (gamePhase === 'guessing') {
-      if (selectedGuess !== null) {
-        makeGuess(selectedGuess === selectedPhraseIndex);
-        setSelectedGuess(null);
+      if (localSelectedGuess !== null) {
+        makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
+        setLocalSelectedGuess(null);
       } else {
-        makeGuess(false);
+        makeGuess(false, -1);
       }
     }
   };
@@ -46,6 +47,16 @@ function App() {
     } catch (err) {
       setError('Failed to start game. Please try again.');
       console.error('Error starting game:', err);
+    }
+  };
+
+  const handleContinueToNextRound = async () => {
+    try {
+      setError(null);
+      await continueToNextRound();
+    } catch (err) {
+      setError('Failed to start next round. Please try again.');
+      console.error('Error starting next round:', err);
     }
   };
 
@@ -127,13 +138,28 @@ function App() {
           <h2 className="text-2xl font-bold mb-4">
             {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
           </h2>
-          <p className="mb-4">The word was: <strong>{phrases[selectedPhraseIndex!]}</strong></p>
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {phrases.map((phrase, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-md ${
+                  index === selectedPhraseIndex
+                    ? 'bg-green-500 text-white font-bold'
+                    : selectedGuess === index
+                    ? 'bg-red-500 text-white font-bold'
+                    : 'bg-gray-100'
+                }`}
+              >
+                {phrase}
+              </div>
+            ))}
+          </div>
           <p className="mb-4">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
           <p className="text-lg mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
               <button
-                onClick={continueToNextRound}
+                onClick={handleContinueToNextRound}
                 className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
               >
                 Next Round
@@ -208,12 +234,9 @@ function App() {
                 {phrases.map((phrase, index) => (
                   <button
                     key={index}
-                    onClick={() => {
-                      setSelectedGuess(index);
-                      makeGuess(index === selectedPhraseIndex);
-                    }}
+                    onClick={() => setLocalSelectedGuess(index)}
                     className={`p-4 rounded-md transition-colors ${
-                      selectedGuess === index
+                      localSelectedGuess === index
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 hover:bg-blue-200'
                     }`}
@@ -221,6 +244,24 @@ function App() {
                     {phrase}
                   </button>
                 ))}
+              </div>
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => {
+                    if (localSelectedGuess !== null) {
+                      makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
+                      setLocalSelectedGuess(null);
+                    }
+                  }}
+                  disabled={localSelectedGuess === null}
+                  className={`px-8 py-3 rounded-md transition-colors ${
+                    localSelectedGuess === null
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                >
+                  Guess
+                </button>
               </div>
             </div>
           )}

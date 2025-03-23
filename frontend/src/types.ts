@@ -19,6 +19,7 @@ export interface GameState {
   gamePhase: GamePhase;
   lastGuessCorrect: boolean;
   aiGuess: string | null;
+  selectedGuess: number | null;
 }
 
 export interface GameStore extends GameState {
@@ -28,7 +29,7 @@ export interface GameStore extends GameState {
   setCurrentDrawing: (drawingData: string) => void;
   switchToGuessing: () => void;
   startGuessing: () => void;
-  makeGuess: (isCorrect: boolean) => void;
+  makeGuess: (isCorrect: boolean, guessIndex: number) => void;
   continueToNextRound: () => void;
   resetGame: () => void;
 }

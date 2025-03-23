@@ -15,6 +15,7 @@ export const useGameStore = create<GameStore>((set) => ({
   gamePhase: 'give-to-drawer',
   lastGuessCorrect: false,
   aiGuess: null,
+  selectedGuess: null,
 
   startGame: async (maxAttempts) => {
     try {
@@ -34,6 +35,7 @@ export const useGameStore = create<GameStore>((set) => ({
         selectedPhraseIndex: data.correct_index,
         gamePhase: 'give-to-drawer',
         aiGuess: null,
+        selectedGuess: null,
       }));
     } catch (error) {
       console.error('Error starting game:', error);
@@ -66,19 +68,35 @@ export const useGameStore = create<GameStore>((set) => ({
     currentDrawing: state.currentDrawing,
   })),
 
-  makeGuess: (correct: boolean) => set((state) => ({
+  makeGuess: (correct: boolean, guessIndex: number) => set((state) => ({
     lastGuessCorrect: correct,
     attemptsLeft: state.attemptsLeft - 1,
     score: correct ? state.score + 1 : state.score,
     gamePhase: 'show-result',
-    currentDrawing: state.currentDrawing,
+    selectedGuess: guessIndex,
   })),
 
-  continueToNextRound: () => set((state) => ({
-    gamePhase: 'give-to-drawer',
-    isDrawingPhase: true,
-    currentDrawing: null,
-  })),
+  continueToNextRound: async () => {
+    try {
+      const response = await fetch('http://localhost:8000/get-clues');
+      if (!response.ok) {
+        throw new Error('Failed to fetch clues');
+      }
+      const data = await response.json();
+      
+      set((state) => ({
+        phrases: data.clues,
+        selectedPhraseIndex: data.correct_index,
+        gamePhase: 'give-to-drawer',
+        isDrawingPhase: true,
+        currentDrawing: null,
+        aiGuess: null,
+      }));
+    } catch (error) {
+      console.error('Error fetching new clues:', error);
+      throw error;
+    }
+  },
 
   resetGame: () => set(() => ({
     phrases: [],
@@ -93,6 +111,7 @@ export const useGameStore = create<GameStore>((set) => ({
     gamePhase: 'give-to-drawer',
     lastGuessCorrect: false,
     aiGuess: null,
+    selectedGuess: null,
   })),
 
   setIsDrawingPhase: (isDrawing) => set(() => ({
