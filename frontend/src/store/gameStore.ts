@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { GameStore } from '../types';
+import { BACKEND_URL } from '../config';
 
 export const useGameStore = create<GameStore>((set) => ({
   phrases: [],
@@ -19,7 +20,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   startGame: async (maxAttempts) => {
     try {
-      const response = await fetch('http://localhost:8000/get-clues');
+      const response = await fetch(`${BACKEND_URL}/get-clues`);
       if (!response.ok) {
         throw new Error('Failed to fetch clues');
       }
@@ -61,7 +62,7 @@ export const useGameStore = create<GameStore>((set) => ({
       if (!state.currentDrawing) return state;
 
       // Send the drawing to AI for analysis
-      fetch('http://localhost:8000/analyze-drawing', {
+      fetch(`${BACKEND_URL}/analyze-drawing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   continueToNextRound: async () => {
     try {
-      const response = await fetch('http://localhost:8000/get-clues');
+      const response = await fetch(`${BACKEND_URL}/get-clues`);
       if (!response.ok) {
         throw new Error('Failed to fetch clues');
       }
@@ -154,11 +155,11 @@ export const useGameStore = create<GameStore>((set) => ({
     selectedGuess: null,
   })),
 
-  setIsDrawingPhase: (isDrawing) => set(() => ({
+  setIsDrawingPhase: (isDrawing: boolean) => set(() => ({
     isDrawingPhase: isDrawing,
   })),
 
-  setAiGuess: (guess) => set(() => ({
+  setAiGuess: (guess: string | null) => set(() => ({
     aiGuess: guess,
   })),
 }));
