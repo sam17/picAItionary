@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from image_analysis import analyze_drawing
 import os
 from dotenv import load_dotenv
+import csv
+import random
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +28,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Load clues from CSV
+def load_clues():
+    clues = []
+    with open('clues.csv', 'r') as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip header
+        clues = [row[0] for row in reader]
+    return clues
+
 class ImageAnalysisRequest(BaseModel):
     image_data: str
     prompt: str | None = None
@@ -33,6 +44,28 @@ class ImageAnalysisRequest(BaseModel):
 @app.get("/")
 async def root():
     return {"message": "PicAictionary Backend API"}
+
+@app.get("/get-clues")
+async def get_clues():
+    """
+    Get 4 random clues and indicate which one is correct.
+    """
+    try:
+        clues = load_clues()
+        if len(clues) < 4:
+            raise HTTPException(status_code=500, detail="Not enough clues in the database")
+        
+        # Select 4 random clues
+        selected_clues = random.sample(clues, 4)
+        # Randomly select one as correct
+        correct_index = random.randint(0, 3)
+        
+        return {
+            "clues": selected_clues,
+            "correct_index": correct_index
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze-drawing")
 async def analyze_drawing_endpoint(request: ImageAnalysisRequest):

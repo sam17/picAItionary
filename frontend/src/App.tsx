@@ -26,6 +26,7 @@ function App() {
 
   const [maxRounds, setMaxRounds] = useState(10);
   const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleTimeUp = () => {
     if (isDrawingPhase) {
@@ -35,6 +36,16 @@ function App() {
       setSelectedGuess(null);
     } else {
       makeGuess(false);
+    }
+  };
+
+  const handleStartGame = async () => {
+    try {
+      setError(null);
+      await startGame(maxRounds);
+    } catch (err) {
+      setError('Failed to start game. Please try again.');
+      console.error('Error starting game:', err);
     }
   };
 
@@ -59,8 +70,13 @@ function App() {
               max="20"
             />
           </div>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
           <button
-            onClick={() => startGame(maxRounds)}
+            onClick={handleStartGame}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
             Start Game
