@@ -134,15 +134,15 @@ function App() {
   if (gamePhase === 'show-result') {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96 text-center">
+        <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-4">
             {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
           </h2>
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-4 gap-6 mb-6">
             {phrases.map((phrase, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-md ${
+                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] ${
                   index === selectedPhraseIndex
                     ? 'bg-green-500 text-white font-bold'
                     : selectedGuess === index
@@ -154,8 +154,8 @@ function App() {
               </div>
             ))}
           </div>
-          <p className="mb-4">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
-          <p className="text-lg mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
+          <p className="mb-4 text-lg">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
+          <p className="text-xl mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
               <button
@@ -203,7 +203,7 @@ function App() {
                   {phrases.map((phrase, index) => (
                     <div
                       key={index}
-                      className={`p-4 rounded-md ${
+                      className={`p-4 rounded-md text-center ${
                         index === selectedPhraseIndex
                           ? 'bg-green-500 text-white font-bold'
                           : 'bg-gray-100'
