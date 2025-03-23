@@ -29,13 +29,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const handleTimeUp = () => {
-    if (isDrawingPhase) {
-      switchToGuessing();
-    } else if (selectedGuess !== null) {
-      makeGuess(selectedGuess === selectedPhraseIndex);
-      setSelectedGuess(null);
-    } else {
-      makeGuess(false);
+    if (gamePhase === 'guessing') {
+      if (selectedGuess !== null) {
+        makeGuess(selectedGuess === selectedPhraseIndex);
+        setSelectedGuess(null);
+      } else {
+        makeGuess(false);
+      }
     }
   };
 
@@ -188,8 +188,14 @@ function App() {
                   ))}
                 </div>
               </div>
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-4">
                 <DrawingCanvas isEnabled={true} />
+                <button
+                  onClick={() => switchToGuessing()}
+                  className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors"
+                >
+                  Done Drawing
+                </button>
               </div>
             </div>
           ) : (
@@ -220,14 +226,14 @@ function App() {
           )}
         </div>
 
-        <div className="text-center">
+        {/* <div className="text-center">
           <button
             onClick={resetGame}
             className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
           >
             Reset Game
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

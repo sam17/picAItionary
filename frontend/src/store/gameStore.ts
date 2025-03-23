@@ -54,14 +54,16 @@ export const useGameStore = create<GameStore>((set) => ({
     currentDrawing: drawing,
   })),
 
-  switchToGuessing: () => set(() => ({
-    gamePhase: 'guessing',
+  switchToGuessing: () => set((state) => ({
+    gamePhase: 'give-to-guessers',
     isDrawingPhase: false,
+    currentDrawing: state.currentDrawing,
   })),
 
-  startGuessing: () => set(() => ({
+  startGuessing: () => set((state) => ({
     gamePhase: 'guessing',
     isDrawingPhase: false,
+    currentDrawing: state.currentDrawing,
   })),
 
   makeGuess: (correct: boolean) => set((state) => ({
@@ -69,6 +71,7 @@ export const useGameStore = create<GameStore>((set) => ({
     attemptsLeft: state.attemptsLeft - 1,
     score: correct ? state.score + 1 : state.score,
     gamePhase: 'show-result',
+    currentDrawing: state.currentDrawing,
   })),
 
   continueToNextRound: () => set((state) => ({
