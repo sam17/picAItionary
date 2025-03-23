@@ -14,6 +14,7 @@ function App() {
     score,
     gamePhase,
     lastGuessCorrect,
+    aiGuess,
     startGame,
     startDrawing,
     makeGuess,
@@ -111,6 +112,7 @@ function App() {
             {lastGuessCorrect ? '🎉 Correct!' : '❌ Wrong!'}
           </h2>
           <p className="mb-4">The word was: <strong>{phrases[selectedPhraseIndex!]}</strong></p>
+          <p className="mb-4">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
           <p className="text-lg mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
@@ -174,14 +176,6 @@ function App() {
               </div>
               <div className="flex justify-center">
                 <DrawingCanvas isEnabled={true} />
-              </div>
-              <div className="flex justify-center mt-4">
-                <button
-                  onClick={() => switchToGuessing()}
-                  className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors"
-                >
-                  Done Drawing
-                </button>
               </div>
             </div>
           ) : (
