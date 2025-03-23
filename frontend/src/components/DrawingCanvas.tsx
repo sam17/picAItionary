@@ -9,7 +9,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const { currentDrawing, setCurrentDrawing } = useGameStore();
+  const { currentDrawing, setCurrentDrawing, isDrawingPhase, setIsDrawingPhase, setAiGuess } = useGameStore();
 
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
@@ -104,8 +104,42 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     }
   };
 
+  const handleDoneDrawing = async () => {
+    if (!canvasRef.current || !isDrawingPhase) return;
+
+    try {
+      const imageData = canvasRef.current.toDataURL();
+      const response = await fetch('http://localhost:8000/analyze-drawing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_data: imageData,
+          prompt: "What word is being drawn? Respond with just the word, nothing else."
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze drawing');
+      }
+
+      const result = await response.json();
+      console.log('Analysis result:', result);
+      
+      // Store the AI's guess
+      setAiGuess(result.word);
+      
+      // Move to the next phase
+      setIsDrawingPhase(false);
+    } catch (error) {
+      console.error('Error analyzing drawing:', error);
+      // TODO: Show error to the user
+    }
+  };
+
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex flex-col items-center gap-4">
       <canvas
         ref={canvasRef}
         className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square`}
@@ -117,6 +151,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
       />
+      {isDrawingPhase && (
+        <button
+          onClick={handleDoneDrawing}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Done Drawing
+        </button>
+      )}
     </div>
   );
 };

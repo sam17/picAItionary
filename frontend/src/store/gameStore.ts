@@ -18,10 +18,11 @@ export const useGameStore = create<GameStore>((set) => ({
   attemptsLeft: 10,
   score: 0,
   isGameStarted: false,
-  isDrawingPhase: false,
+  isDrawingPhase: true,
   currentDrawing: null,
   gamePhase: 'give-to-drawer',
   lastGuessCorrect: false,
+  aiGuess: null,
 
   startGame: (maxAttempts) => {
     const phrases = PHRASES[Math.floor(Math.random() * PHRASES.length)];
@@ -36,6 +37,7 @@ export const useGameStore = create<GameStore>((set) => ({
       currentDrawing: null,
       selectedPhraseIndex: randomPhraseIndex,
       gamePhase: 'give-to-drawer',
+      aiGuess: null,
     }));
   },
 
@@ -48,8 +50,8 @@ export const useGameStore = create<GameStore>((set) => ({
     timeRemaining: time,
   })),
 
-  setCurrentDrawing: (drawingData) => set(() => ({
-    currentDrawing: drawingData,
+  setCurrentDrawing: (drawing) => set(() => ({
+    currentDrawing: drawing,
   })),
 
   switchToGuessing: () => set(() => ({
@@ -101,9 +103,18 @@ export const useGameStore = create<GameStore>((set) => ({
     attemptsLeft: 10,
     score: 0,
     isGameStarted: false,
-    isDrawingPhase: false,
+    isDrawingPhase: true,
     currentDrawing: null,
     gamePhase: 'give-to-drawer',
     lastGuessCorrect: false,
+    aiGuess: null,
+  })),
+
+  setIsDrawingPhase: (isDrawing) => set(() => ({
+    isDrawingPhase: isDrawing,
+  })),
+
+  setAiGuess: (guess) => set(() => ({
+    aiGuess: guess,
   })),
 }));
