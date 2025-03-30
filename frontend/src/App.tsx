@@ -15,6 +15,8 @@ function App() {
     gamePhase,
     lastGuessCorrect,
     aiGuess,
+    selectedGuess,
+    currentCorrectPhrase,
     startGame,
     startDrawing,
     makeGuess,
@@ -24,17 +26,38 @@ function App() {
     continueToNextRound,
   } = useGameStore();
 
-  const [maxAttempts, setMaxAttempts] = useState(10);
-  const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
+  const [maxRounds, setMaxRounds] = useState(10);
+  const [localSelectedGuess, setLocalSelectedGuess] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleTimeUp = () => {
-    if (isDrawingPhase) {
-      switchToGuessing();
-    } else if (selectedGuess !== null) {
-      makeGuess(selectedGuess === selectedPhraseIndex);
-      setSelectedGuess(null);
-    } else {
-      makeGuess(false);
+    if (gamePhase === 'guessing') {
+      if (localSelectedGuess !== null) {
+        makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
+        setLocalSelectedGuess(null);
+      } else {
+        makeGuess(false, -1);
+      }
+    }
+  };
+
+  const handleStartGame = async () => {
+    try {
+      setError(null);
+      await startGame(maxRounds);
+    } catch (err) {
+      setError('Failed to start game. Please try again.');
+      console.error('Error starting game:', err);
+    }
+  };
+
+  const handleContinueToNextRound = async () => {
+    try {
+      setError(null);
+      await continueToNextRound();
+    } catch (err) {
+      setError('Failed to start next round. Please try again.');
+      console.error('Error starting next round:', err);
     }
   };
 
@@ -48,19 +71,24 @@ function App() {
           </h1>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Number of Attempts:
+              Number of Rounds:
             </label>
             <input
               type="number"
-              value={maxAttempts}
-              onChange={(e) => setMaxAttempts(Number(e.target.value))}
+              value={maxRounds}
+              onChange={(e) => setMaxRounds(Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-md"
               min="1"
               max="20"
             />
           </div>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
           <button
-            onClick={() => startGame(maxAttempts)}
+            onClick={handleStartGame}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
             Start Game
@@ -107,21 +135,35 @@ function App() {
   if (gamePhase === 'show-result') {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96 text-center">
+        <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-4">
-            {lastGuessCorrect ? '🎉 Correct!' : '❌ Wrong!'}
+            {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
           </h2>
-          <p className="mb-4">The word was: <strong>{phrases[selectedPhraseIndex!]}</strong></p>
-          <p className="mb-4">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
-          <p className="text-lg mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
+          <div className="grid grid-cols-4 gap-6 mb-6">
+            {phrases.map((phrase, index) => (
+              <div
+                key={index}
+                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] ${
+                  phrase === currentCorrectPhrase
+                    ? 'bg-green-500 text-white font-bold'
+                    : selectedGuess === index
+                    ? 'bg-red-500 text-white font-bold'
+                    : 'bg-gray-100'
+                }`}
+              >
+                {phrase}
+              </div>
+            ))}
+          </div>
+          <p className="mb-4 text-lg">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
+          <p className="text-xl mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
-              <p className="mb-4">Pass the device back to the drawer for the next round!</p>
               <button
-                onClick={continueToNextRound}
+                onClick={handleContinueToNextRound}
                 className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
               >
-                Continue
+                Next Round
               </button>
             </>
           ) : (
@@ -147,35 +189,44 @@ function App() {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-4">
               <TimerIcon className="w-6 h-6" />
-              <Timer duration={isDrawingPhase ? 30 : 60} onTimeUp={handleTimeUp} />
+              <Timer 
+                key={`${gamePhase}-${isDrawingPhase}`} 
+                duration={isDrawingPhase ? 30 : 60} 
+                onTimeUp={handleTimeUp} 
+              />
             </div>
             <div className="text-lg">
-              Attempts left: {attemptsLeft} | Score: {score}
+              Rounds left: {attemptsLeft} | Score: {score}
             </div>
           </div>
 
           {isDrawingPhase ? (
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">All possible words:</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <h2 className="text-xl font-semibold mb-4">Make them guess the green word!</h2>
+                <div className="grid grid-cols-4 gap-4">
                   {phrases.map((phrase, index) => (
                     <div
                       key={index}
-                      className={`p-4 rounded-md ${
+                      className={`p-4 rounded-md text-center ${
                         index === selectedPhraseIndex
                           ? 'bg-green-500 text-white font-bold'
                           : 'bg-gray-100'
                       }`}
                     >
                       {phrase}
-                      {index === selectedPhraseIndex && ' (Draw this!)'}
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-4">
                 <DrawingCanvas isEnabled={true} />
+                <button
+                  onClick={() => switchToGuessing()}
+                  className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors"
+                >
+                  Done Drawing
+                </button>
               </div>
             </div>
           ) : (
@@ -184,16 +235,13 @@ function App() {
               <div className="flex justify-center mb-4">
                 <DrawingCanvas isEnabled={false} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {phrases.map((phrase, index) => (
                   <button
                     key={index}
-                    onClick={() => {
-                      setSelectedGuess(index);
-                      makeGuess(index === selectedPhraseIndex);
-                    }}
+                    onClick={() => setLocalSelectedGuess(index)}
                     className={`p-4 rounded-md transition-colors ${
-                      selectedGuess === index
+                      localSelectedGuess === index
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 hover:bg-blue-200'
                     }`}
@@ -202,18 +250,36 @@ function App() {
                   </button>
                 ))}
               </div>
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => {
+                    if (localSelectedGuess !== null) {
+                      makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
+                      setLocalSelectedGuess(null);
+                    }
+                  }}
+                  disabled={localSelectedGuess === null}
+                  className={`px-8 py-3 rounded-md transition-colors ${
+                    localSelectedGuess === null
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                >
+                  Guess
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="text-center">
+        {/* <div className="text-center">
           <button
             onClick={resetGame}
             className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
           >
             Reset Game
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -1,13 +1,6 @@
 import { create } from 'zustand';
 import { GameStore } from '../types';
-
-const PHRASES = [
-  ['cat', 'dog', 'bird', 'fish'],
-  ['pizza', 'burger', 'pasta', 'sushi'],
-  ['beach', 'mountain', 'forest', 'desert'],
-  ['guitar', 'piano', 'drums', 'violin'],
-  // Add more sets of phrases as needed
-];
+import { BACKEND_URL } from '../config';
 
 export const useGameStore = create<GameStore>((set) => ({
   phrases: [],
@@ -23,22 +16,33 @@ export const useGameStore = create<GameStore>((set) => ({
   gamePhase: 'give-to-drawer',
   lastGuessCorrect: false,
   aiGuess: null,
+  selectedGuess: null,
+  currentCorrectPhrase: null,
 
-  startGame: (maxAttempts) => {
-    const phrases = PHRASES[Math.floor(Math.random() * PHRASES.length)];
-    const randomPhraseIndex = Math.floor(Math.random() * phrases.length);
-    
-    set(() => ({
-      phrases,
-      isGameStarted: true,
-      maxAttempts,
-      attemptsLeft: maxAttempts,
-      score: 0,
-      currentDrawing: null,
-      selectedPhraseIndex: randomPhraseIndex,
-      gamePhase: 'give-to-drawer',
-      aiGuess: null,
-    }));
+  startGame: async (maxAttempts) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/get-clues`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch clues');
+      }
+      const data = await response.json();
+      
+      set(() => ({
+        phrases: data.clues,
+        isGameStarted: true,
+        maxAttempts,
+        attemptsLeft: maxAttempts,
+        score: 0,
+        currentDrawing: null,
+        selectedPhraseIndex: data.correct_index,
+        gamePhase: 'give-to-drawer',
+        aiGuess: null,
+        selectedGuess: null,
+      }));
+    } catch (error) {
+      console.error('Error starting game:', error);
+      throw error;
+    }
   },
 
   startDrawing: () => set(() => ({
@@ -54,46 +58,90 @@ export const useGameStore = create<GameStore>((set) => ({
     currentDrawing: drawing,
   })),
 
-  switchToGuessing: () => set(() => ({
-    isDrawingPhase: false,
-    gamePhase: 'give-to-guessers',
-  })),
+  switchToGuessing: async () => {
+    set((state) => {
+      if (!state.currentDrawing) return state;
 
-  startGuessing: () => set(() => ({
+      // Send the drawing to AI for analysis
+      fetch(`${BACKEND_URL}/analyze-drawing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_data: state.currentDrawing,
+          prompt: `This is a drawing from a word-guessing game. The drawing represents one of these words: ${state.phrases.join(', ')}. Which word is being drawn? Respond with just the word, nothing else.`
+        }),
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to analyze drawing');
+        }
+        return response.json();
+      })
+      .then(result => {
+        if (result.success) {
+          set(state => ({
+            ...state,
+            gamePhase: 'give-to-guessers',
+            isDrawingPhase: false,
+            aiGuess: result.word,
+          }));
+        }
+      })
+      .catch(error => {
+        console.error('Error analyzing drawing:', error);
+        // Still switch to guessing phase even if AI analysis fails
+        set(state => ({
+          ...state,
+          gamePhase: 'give-to-guessers',
+          isDrawingPhase: false,
+        }));
+      });
+
+      // Return current state while the fetch is in progress
+      return state;
+    });
+  },
+
+  startGuessing: () => set((state) => ({
     gamePhase: 'guessing',
+    isDrawingPhase: false,
+    currentDrawing: state.currentDrawing,
   })),
 
-  makeGuess: (isCorrect) => set((state) => {
-    const newState = {
-      attemptsLeft: state.attemptsLeft - 1,
-      score: isCorrect ? state.score + 1 : state.score,
-      isDrawingPhase: false,
-      lastGuessCorrect: isCorrect,
-      gamePhase: 'show-result',
-    };
+  makeGuess: (correct: boolean, guessIndex: number) => set((state) => ({
+    lastGuessCorrect: correct,
+    attemptsLeft: state.attemptsLeft - 1,
+    score: correct ? state.score + 1 : state.score,
+    gamePhase: 'show-result',
+    selectedGuess: guessIndex,
+    currentCorrectPhrase: state.phrases[state.selectedPhraseIndex!],
+  })),
 
-    // If game should continue
-    if (state.attemptsLeft > 1) {
-      const phrases = PHRASES[Math.floor(Math.random() * PHRASES.length)];
-      const randomPhraseIndex = Math.floor(Math.random() * phrases.length);
-      return {
-        ...newState,
-        phrases,
-        selectedPhraseIndex: randomPhraseIndex,
-      };
+  continueToNextRound: async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/get-clues`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch clues');
+      }
+      const data = await response.json();
+      
+      set((state) => ({
+        phrases: data.clues,
+        selectedPhraseIndex: data.correct_index,
+        gamePhase: 'give-to-drawer',
+        isDrawingPhase: true,
+        currentDrawing: null,
+        aiGuess: null,
+        selectedGuess: null,
+        currentCorrectPhrase: null,
+      }));
+    } catch (error) {
+      console.error('Error fetching new clues:', error);
+      throw error;
     }
-
-    // If game is over
-    return {
-      ...newState,
-      selectedPhraseIndex: null,
-    };
-  }),
-
-  continueToNextRound: () => set(() => ({
-    gamePhase: 'give-to-drawer',
-    currentDrawing: null,
-  })),
+  },
 
   resetGame: () => set(() => ({
     phrases: [],
@@ -108,13 +156,15 @@ export const useGameStore = create<GameStore>((set) => ({
     gamePhase: 'give-to-drawer',
     lastGuessCorrect: false,
     aiGuess: null,
+    selectedGuess: null,
+    currentCorrectPhrase: null,
   })),
 
-  setIsDrawingPhase: (isDrawing) => set(() => ({
+  setIsDrawingPhase: (isDrawing: boolean) => set(() => ({
     isDrawingPhase: isDrawing,
   })),
 
-  setAiGuess: (guess) => set(() => ({
+  setAiGuess: (guess: string | null) => set(() => ({
     aiGuess: guess,
   })),
 }));
