@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Timer } from './components/Timer';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { useGameStore } from './store/gameStore';
-import { Pencil, Timer as TimerIcon, Smartphone } from 'lucide-react';
+import { Pencil, Timer as TimerIcon, Smartphone, Bot } from 'lucide-react';
 
 function App() {
   const {
@@ -143,7 +143,7 @@ function App() {
             {phrases.map((phrase, index) => (
               <div
                 key={index}
-                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] ${
+                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
                     ? 'bg-green-500 text-white font-bold'
                     : selectedGuess === index
@@ -152,10 +152,18 @@ function App() {
                 }`}
               >
                 {phrase}
+                {phrase === aiGuess && (
+                  <div className="absolute top-2 right-2">
+                    <Bot className="w-5 h-5 text-blue-500" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <p className="mb-4 text-lg">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
+          <p className="mb-4 text-lg flex items-center justify-center gap-2">
+            <Bot className="w-5 h-5 text-blue-500" />
+            AI thought it was: <strong>{aiGuess || 'No guess'}</strong>
+          </p>
           <p className="text-xl mb-6">Score: {score} | Rounds left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>

@@ -13,7 +13,7 @@ export interface GameState {
   currentDrawing: string | null;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
-  aiGuess: number | null;
+  aiGuess: string | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
 }
@@ -27,7 +27,7 @@ export interface GameStore extends GameState {
   score: number;
   gamePhase: 'start' | 'drawing' | 'give-to-guessers' | 'guessing' | 'result' | 'game-over';
   lastGuessCorrect: boolean | null;
-  aiGuess: number | null;
+  aiGuess: string | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
   startGame: () => void;
