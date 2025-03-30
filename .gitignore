@@ -74,4 +74,8 @@ __pycache__/
 backend/venv/
 backend/env/
 backend/.env
-backend/.env.local 
+backend/.env.local
+
+# Database
+*.db
+backend/data/ 
