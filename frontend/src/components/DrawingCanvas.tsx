@@ -1,9 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
 
 interface DrawingCanvasProps {
   isEnabled: boolean;
 }
+
+type DrawingEvent = MouseEvent | TouchEvent;
 
 export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,7 +13,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const { currentDrawing, setCurrentDrawing } = useGameStore();
 
-  const resizeCanvas = () => {
+  const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -47,7 +49,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       };
       img.src = currentDrawing;
     }
-  };
+  }, [currentDrawing]);
 
   useEffect(() => {
     resizeCanvas();
@@ -59,9 +61,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [currentDrawing]);
+  }, [resizeCanvas]);
 
-  const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
+  const getCoordinates = useCallback((event: DrawingEvent) => {
     if ('touches' in event) {
       const touch = event.touches[0];
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -72,50 +74,77 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       };
     }
     return {
-      x: event.nativeEvent.offsetX,
-      y: event.nativeEvent.offsetY
+      x: event.offsetX,
+      y: event.offsetY
     };
-  };
+  }, []);
 
-  const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+  const startDrawing = useCallback((event: DrawingEvent) => {
     if (!isEnabled) return;
     event.preventDefault();
     const { x, y } = getCoordinates(event);
     contextRef.current?.beginPath();
     contextRef.current?.moveTo(x, y);
     setIsDrawing(true);
-  };
+  }, [isEnabled, getCoordinates]);
 
-  const draw = (event: React.MouseEvent | React.TouchEvent) => {
+  const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
     event.preventDefault();
     const { x, y } = getCoordinates(event);
     contextRef.current?.lineTo(x, y);
     contextRef.current?.stroke();
-  };
+  }, [isDrawing, isEnabled, getCoordinates]);
 
-  const stopDrawing = () => {
+  const stopDrawing = useCallback(() => {
     if (!isEnabled) return;
     contextRef.current?.closePath();
     setIsDrawing(false);
-    // Save the drawing data when finished
-    if (canvasRef.current) {
-      setCurrentDrawing(canvasRef.current.toDataURL());
+    
+    // Save the current drawing
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setCurrentDrawing(canvas.toDataURL());
     }
-  };
+  }, [isEnabled, setCurrentDrawing]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Add touch event listeners with passive: false
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchcancel', stopDrawing);
+
+    // Add mouse event listeners
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    return () => {
+      // Remove touch event listeners
+      canvas.removeEventListener('touchstart', startDrawing);
+      canvas.removeEventListener('touchmove', draw);
+      canvas.removeEventListener('touchend', stopDrawing);
+      canvas.removeEventListener('touchcancel', stopDrawing);
+
+      // Remove mouse event listeners
+      canvas.removeEventListener('mousedown', startDrawing);
+      canvas.removeEventListener('mousemove', draw);
+      canvas.removeEventListener('mouseup', stopDrawing);
+      canvas.removeEventListener('mouseout', stopDrawing);
+    };
+  }, [startDrawing, draw, stopDrawing]);
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
       <canvas
         ref={canvasRef}
         className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square`}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
+        style={{ touchAction: 'none' }}
       />
     </div>
   );

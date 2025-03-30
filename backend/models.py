@@ -39,8 +39,11 @@ class GameRound(Base):
     image_data = Column(String)  # Base64 encoded image
     all_options = Column(String)  # JSON string of options
     drawer_choice = Column(String)  # The word the drawer chose
+    drawer_choice_index = Column(Integer)  # Index of the word the drawer chose
     ai_guess = Column(String)  # The word AI guessed
+    ai_guess_index = Column(Integer, nullable=True)  # Index of the word AI guessed
     player_guess = Column(String)  # The word the second player guessed
+    player_guess_index = Column(Integer, nullable=True)  # Index of the word the player guessed
     is_correct = Column(Boolean)  # Whether the player's guess was correct
     created_at = Column(DateTime, default=datetime.utcnow)
     game = relationship("Game", back_populates="rounds")

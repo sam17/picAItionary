@@ -24,17 +24,26 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
     
     Args:
         image_data: Base64 encoded image data
-        prompt: Optional custom prompt for the analysis
+        prompt: Custom prompt that includes numbered options and asks for index
         
     Returns:
-        dict: Analysis results including the word and confidence
+        dict: Analysis results including the index and confidence
     """
     try:
-        # Default prompt if none provided
-        default_prompt = """This is a drawing from a word-guessing game. 
-        The drawing represents a single word. 
-        What word is being drawn? 
-        Respond with just the word, nothing else."""
+        # Default prompt if none provided 
+        # (though we should always get a prompt with indices)
+
+
+        default_prompt = (
+            "This is a drawing from a word-guessing game.\n"
+            "The drawing represents one of these options:\n"
+            "0: Option A\n"
+            "1: Option B\n"
+            "2: Option C\n"
+            "3: Option D\n"
+            "Please respond with just the number (0-3) of your choice.\n"
+            "Respond with only the number, nothing else."
+        )
         
         # Use custom prompt if provided
         analysis_prompt = prompt or default_prompt
@@ -42,7 +51,7 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
         # Decode base64 image
         image_bytes = base64.b64decode(image_data.split(',')[1])
         
-        # Call OpenAI API
+        # Call OpenAI API with vision model
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -56,7 +65,10 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+                                "url": (
+                                    f"data:image/png;base64,"
+                                    f"{base64.b64encode(image_bytes).decode('utf-8')}"
+                                )
                             }
                         }
                     ]
@@ -64,14 +76,27 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
             ]
         )
         
-        # Extract the word from the response
+        # Extract and validate the response is a number
         word = response.choices[0].message.content.strip()
-        
-        return {
-            "success": True,
-            "word": word,
-            "confidence": "high"  # OpenAI doesn't provide confidence scores
-        }
+        try:
+            index = int(word)
+            if index < 0:
+                return {
+                    "success": False,
+                    "word": None,
+                    "error": "Index cannot be negative"
+                }
+            return {
+                "success": True,
+                "word": str(index),
+                "confidence": "high"
+            }
+        except ValueError:
+            return {
+                "success": False,
+                "word": None,
+                "error": "AI response was not a valid index"
+            }
         
     except Exception as e:
         return {

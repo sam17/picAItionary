@@ -65,8 +65,11 @@ class GameRoundRequest(BaseModel):
     image_data: str
     all_options: List[str]
     drawer_choice: str
+    drawer_choice_index: int
     ai_guess: str
+    ai_guess_index: int | None
     player_guess: str
+    player_guess_index: int | None
     is_correct: bool
 
 class GameRequest(BaseModel):
@@ -115,6 +118,7 @@ async def analyze_drawing_endpoint(
 ):
     """
     Analyze a drawing using OpenAI's GPT-4 Vision model.
+    Expects a prompt asking for an index and returns a numeric index.
     """
     logger.info("Received drawing analysis request")
     if not request.image_data:
@@ -126,8 +130,22 @@ async def analyze_drawing_endpoint(
         logger.error(f"Error analyzing drawing: {result['error']}")
         raise HTTPException(status_code=500, detail=result["error"])
     
-    logger.info(f"Drawing analysis result: {result['word']}")
-    return result
+    # Try to parse the response as a number
+    try:
+        guess_index = int(result["word"].strip())
+        logger.info(f"Drawing analysis result: index {guess_index}")
+        return {
+            "success": True,
+            "word": str(guess_index),  # Keep as string for API compatibility
+            "confidence": result.get("confidence", "high")
+        }
+    except (ValueError, AttributeError):
+        logger.error("Failed to parse AI response as number")
+        return {
+            "success": False,
+            "word": None,
+            "confidence": "low"
+        }
 
 @app.post("/create-game")
 async def create_game(
@@ -165,8 +183,11 @@ async def save_game_round(
             image_data=request.image_data,
             all_options=json.dumps(request.all_options),
             drawer_choice=request.drawer_choice,
+            drawer_choice_index=request.drawer_choice_index,
             ai_guess=request.ai_guess,
+            ai_guess_index=request.ai_guess_index,
             player_guess=request.player_guess,
+            player_guess_index=request.player_guess_index,
             is_correct=request.is_correct
         )
         db.add(game_round)
