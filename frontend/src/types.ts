@@ -1,4 +1,12 @@
-export type GamePhase = 'start' | 'drawing' | 'give-to-guessers' | 'guessing' | 'result' | 'game-over';
+export type GamePhase = 
+  | 'start' 
+  | 'drawing' 
+  | 'give-to-drawer'
+  | 'give-to-guessers' 
+  | 'guessing' 
+  | 'result' 
+  | 'show-result'
+  | 'game-over';
 
 export interface GameState {
   phrases: string[];
@@ -13,9 +21,11 @@ export interface GameState {
   currentDrawing: string | null;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
-  aiGuess: number | null;
+  aiGuess: string | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
+  currentGameId: number | null;
+  currentRoundNumber: number;
 }
 
 export interface GameStore extends GameState {
@@ -25,16 +35,24 @@ export interface GameStore extends GameState {
   isDrawingPhase: boolean;
   attemptsLeft: number;
   score: number;
-  gamePhase: 'start' | 'drawing' | 'give-to-guessers' | 'guessing' | 'result' | 'game-over';
+  gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
-  aiGuess: number | null;
+  aiGuess: string | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
-  startGame: () => void;
+  currentGameId: number | null;
+  currentRoundNumber: number;
+  startGame: (maxAttempts: number) => Promise<void>;
   startDrawing: () => void;
-  makeGuess: (guess: number) => void;
+  makeGuess: (correct: boolean, guessIndex: number) => void;
   resetGame: () => void;
   switchToGuessing: () => void;
   startGuessing: () => void;
-  continueToNextRound: () => void;
+  continueToNextRound: () => Promise<void>;
+  saveGameRound: () => Promise<void>;
+  setTimeRemaining: (time: number) => void;
+  setCurrentDrawing: (drawing: string | null) => void;
+  setIsDrawingPhase: (isDrawing: boolean) => void;
+  setAiGuess: (guess: string | null) => void;
+  endGame: () => Promise<void>;
 }
