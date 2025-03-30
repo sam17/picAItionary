@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from '../config';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GameRound {
   id: number;
@@ -28,6 +28,7 @@ export const GameHistory: React.FC = () => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedGames, setExpandedGames] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -43,6 +44,10 @@ export const GameHistory: React.FC = () => {
         const data = await response.json();
         console.log('Received data:', data);
         setGames(data);
+        // Expand the most recent game by default
+        if (data.length > 0) {
+          setExpandedGames(new Set([data[0].id]));
+        }
       } catch (err) {
         console.error('Error fetching games:', err);
         setError(err instanceof Error ? err.message : 'Failed to load game history');
@@ -53,6 +58,18 @@ export const GameHistory: React.FC = () => {
 
     fetchGames();
   }, []);
+
+  const toggleGame = (gameId: number) => {
+    setExpandedGames(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(gameId)) {
+        newSet.delete(gameId);
+      } else {
+        newSet.add(gameId);
+      }
+      return newSet;
+    });
+  };
 
   if (loading) {
     return (
@@ -103,87 +120,100 @@ export const GameHistory: React.FC = () => {
             Back to Game
           </button>
         </div>
-        <div className="space-y-8">
+        <div className="space-y-4">
           {games.map((game) => (
-            <div key={game.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Game {game.id}</h2>
-                  <p className="text-gray-600">
-                    Played on: {new Date(game.created_at).toLocaleString()}
-                  </p>
+            <div key={game.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleGame(game.id)}
+                className="w-full p-6 flex justify-between items-center hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="text-2xl text-gray-400">
+                    {expandedGames.has(game.id) ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold mb-1">Game {game.id}</h2>
+                    <p className="text-gray-600">
+                      Played on: {new Date(game.created_at).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
                 <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
                   Score: {game.final_score}/{game.total_rounds}
                 </div>
-              </div>
+              </button>
 
-              <div className="space-y-6">
-                {game.rounds.map((round) => (
-                  <div key={round.id} className="border-t pt-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-lg font-semibold">Round {round.round_number}</h3>
-                      <div className={`px-4 py-2 rounded-full ${
-                        round.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {round.is_correct ? 'Correct!' : 'Incorrect'}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-semibold mb-2">Drawing:</h4>
-                        <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
-                          <img
-                            src={round.image_data}
-                            alt="Drawing"
-                            className="w-full h-auto"
-                          />
+              <div className={`transition-all duration-300 ease-in-out ${
+                expandedGames.has(game.id) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              } overflow-hidden`}>
+                <div className="p-6 pt-0 space-y-6">
+                  {game.rounds.map((round) => (
+                    <div key={round.id} className="border-t pt-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold">Round {round.round_number}</h3>
+                        <div className={`px-4 py-2 rounded-full ${
+                          round.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {round.is_correct ? 'Correct!' : 'Incorrect'}
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h4 className="font-semibold mb-2">Options:</h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {round.all_options.map((option) => (
-                              <div
-                                key={`${round.id}-${option}`}
-                                className={`p-2 rounded-md text-center ${
-                                  option === round.drawer_choice
-                                    ? 'bg-green-100 text-green-800 font-semibold'
-                                    : option === round.player_guess
-                                    ? 'bg-blue-100 text-blue-800 font-semibold'
-                                    : 'bg-gray-100'
-                                }`}
-                              >
-                                {option}
-                              </div>
-                            ))}
+                          <h4 className="font-semibold mb-2">Drawing:</h4>
+                          <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                            <img
+                              src={round.image_data}
+                              alt="Drawing"
+                              className="w-full h-auto"
+                            />
                           </div>
                         </div>
 
-                        <div>
-                          <h4 className="font-semibold mb-2">Guesses:</h4>
-                          <div className="space-y-2">
-                            <p>
-                              <span className="font-medium">Drawer's choice:</span>{' '}
-                              {round.drawer_choice}
-                            </p>
-                            <p>
-                              <span className="font-medium">AI's guess:</span>{' '}
-                              {round.ai_guess}
-                            </p>
-                            <p>
-                              <span className="font-medium">Player's guess:</span>{' '}
-                              {round.player_guess}
-                            </p>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold mb-2">Options:</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              {round.all_options.map((option) => (
+                                <div
+                                  key={`${round.id}-${option}`}
+                                  className={`p-2 rounded-md text-center ${
+                                    option === round.drawer_choice
+                                      ? 'bg-green-100 text-green-800 font-semibold'
+                                      : option === round.player_guess
+                                      ? 'bg-blue-100 text-blue-800 font-semibold'
+                                      : 'bg-gray-100'
+                                  }`}
+                                >
+                                  {option}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold mb-2">Guesses:</h4>
+                            <div className="space-y-2">
+                              <p>
+                                <span className="font-medium">Drawer's choice:</span>{' '}
+                                {round.drawer_choice}
+                              </p>
+                              <p>
+                                <span className="font-medium">AI's guess:</span>{' '}
+                                {round.ai_guess}
+                              </p>
+                              <p>
+                                <span className="font-medium">Player's guess:</span>{' '}
+                                {round.player_guess}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           ))}
