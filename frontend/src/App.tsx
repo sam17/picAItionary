@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { Timer } from './components/Timer';
 import { DrawingCanvas } from './components/DrawingCanvas';
+import { GameHistory } from './components/GameHistory';
 import { useGameStore } from './store/gameStore';
-import { Pencil, Timer as TimerIcon, Smartphone, Bot } from 'lucide-react';
+import { Pencil, Timer as TimerIcon, Smartphone, Bot, History } from 'lucide-react';
 
 // Add the animation keyframes at the top of the file
 const botAnimation = `
@@ -14,7 +16,8 @@ const botAnimation = `
   }
 `;
 
-function App() {
+function GameComponent() {
+  const navigate = useNavigate();
   const {
     phrases,
     selectedPhraseIndex,
@@ -90,10 +93,11 @@ function App() {
             Draw & Guess
           </h1>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="maxRounds" className="block text-sm font-medium text-gray-700 mb-2">
               Number of Rounds:
             </label>
             <input
+              id="maxRounds"
               type="number"
               value={maxRounds}
               onChange={(e) => setMaxRounds(Number(e.target.value))}
@@ -107,12 +111,23 @@ function App() {
               {error}
             </div>
           )}
-          <button
-            onClick={handleStartGame}
-            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Start Game
-          </button>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={handleStartGame}
+              className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Start Game
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/history')}
+              className="w-full bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <History className="w-5 h-5" />
+              View Game History
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -125,6 +140,7 @@ function App() {
           <Smartphone className="w-16 h-16 mx-auto mb-4 text-blue-500" />
           <h2 className="text-2xl font-bold mb-4">Pass the device to the drawer!</h2>
           <button
+            type="button"
             onClick={startDrawing}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
@@ -142,6 +158,7 @@ function App() {
           <Smartphone className="w-16 h-16 mx-auto mb-4 text-blue-500" />
           <h2 className="text-2xl font-bold mb-4">Pass the device to the guessers!</h2>
           <button
+            type="button"
             onClick={startGuessing}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
@@ -162,7 +179,7 @@ function App() {
           <div className="grid grid-cols-4 gap-6 mb-6">
             {phrases.map((phrase, index) => (
               <div
-                key={index}
+                key={`phrase-${index}-${phrase}`}
                 className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
                     ? 'bg-green-500 text-white font-bold'
@@ -186,16 +203,18 @@ function App() {
           {attemptsLeft > 0 ? (
             <>
               <button
+                type="button"
                 onClick={handleContinueToNextRound}
                 className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors shadow-lg"
               >
-                Next Round
+                Continue to Next Round
               </button>
             </>
           ) : (
             <>
               <p className="mb-4">Game Over! Final Score: {score}</p>
               <button
+                type="button"
                 onClick={resetGame}
                 className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
               >
@@ -233,7 +252,7 @@ function App() {
                 <div className="grid grid-cols-4 gap-4">
                   {phrases.map((phrase, index) => (
                     <div
-                      key={index}
+                      key={`phrase-${index}-${phrase}`}
                       className={`p-4 rounded-md text-center ${
                         index === selectedPhraseIndex
                           ? 'bg-green-500 text-white font-bold'
@@ -248,6 +267,7 @@ function App() {
               <div className="flex flex-col items-center gap-4">
                 <DrawingCanvas isEnabled={true} />
                 <button
+                  type="button"
                   onClick={() => switchToGuessing()}
                   className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors"
                 >
@@ -264,12 +284,13 @@ function App() {
               <div className="grid grid-cols-4 gap-4">
                 {phrases.map((phrase, index) => (
                   <button
-                    key={index}
+                    key={`phrase-${index}-${phrase}`}
+                    type="button"
                     onClick={() => setLocalSelectedGuess(index)}
-                    className={`p-4 rounded-md transition-colors ${
+                    className={`w-full p-4 rounded-lg border-2 transition-colors ${
                       localSelectedGuess === index
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-blue-100 hover:bg-blue-200'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300'
                     }`}
                   >
                     {phrase}
@@ -278,6 +299,7 @@ function App() {
               </div>
               <div className="flex justify-center mt-4">
                 <button
+                  type="button"
                   onClick={() => {
                     if (localSelectedGuess !== null) {
                       makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
@@ -308,6 +330,17 @@ function App() {
         </div> */}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<GameComponent />} />
+        <Route path="/history" element={<GameHistory />} />
+      </Routes>
+    </Router>
   );
 }
 
