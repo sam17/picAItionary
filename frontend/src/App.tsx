@@ -4,7 +4,17 @@ import { Timer } from './components/Timer';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { GameHistory } from './components/GameHistory';
 import { useGameStore } from './store/gameStore';
-import { Pencil, Timer as TimerIcon, Smartphone, History } from 'lucide-react';
+import { Pencil, Timer as TimerIcon, Smartphone, Bot, History } from 'lucide-react';
+
+// Add the animation keyframes at the top of the file
+const botAnimation = `
+  @keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-8px) rotate(5deg); }
+    75% { transform: translateY(-8px) rotate(-5deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
+`;
 
 function GameComponent() {
   const navigate = useNavigate();
@@ -32,6 +42,16 @@ function GameComponent() {
   const [maxRounds, setMaxRounds] = useState(10);
   const [localSelectedGuess, setLocalSelectedGuess] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Add useEffect to inject the animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = botAnimation;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const handleTimeUp = () => {
     if (gamePhase === 'guessing') {
@@ -160,7 +180,7 @@ function GameComponent() {
             {phrases.map((phrase, index) => (
               <div
                 key={`phrase-${index}-${phrase}`}
-                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] ${
+                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
                     ? 'bg-green-500 text-white font-bold'
                     : selectedGuess === index
@@ -169,17 +189,23 @@ function GameComponent() {
                 }`}
               >
                 {phrase}
+                {phrase === aiGuess && (
+                  <div className="absolute -top-8 -right-8">
+                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
+                      <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite]" />
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <p className="mb-4 text-lg">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
-          <p className="text-xl mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
+          <p className="text-xl mb-6">Score: {score} | Rounds left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
               <button
                 type="button"
                 onClick={handleContinueToNextRound}
-                className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
+                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors shadow-lg"
               >
                 Continue to Next Round
               </button>
@@ -190,7 +216,7 @@ function GameComponent() {
               <button
                 type="button"
                 onClick={resetGame}
-                className="w-full bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition-colors"
+                className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
               >
                 Play Again
               </button>
