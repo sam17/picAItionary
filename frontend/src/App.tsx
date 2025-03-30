@@ -156,7 +156,7 @@ function App() {
             ))}
           </div>
           <p className="mb-4 text-lg">AI thought it was: <strong>{aiGuess || 'No guess'}</strong></p>
-          <p className="text-xl mb-6">Score: {score} | Attempts left: {attemptsLeft}</p>
+          <p className="text-xl mb-6">Score: {score} | Rounds left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
               <button
