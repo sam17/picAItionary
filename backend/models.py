@@ -28,7 +28,7 @@ class Game(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     total_rounds = Column(Integer)
     final_score = Column(Integer, default=0)
-    rounds = relationship("GameRound", back_populates="game")
+    rounds = relationship("GameRound", back_populates="game", order_by="GameRound.round_number")
 
 class GameRound(Base):
     __tablename__ = 'game_rounds'

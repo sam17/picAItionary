@@ -124,6 +124,16 @@ async def analyze_drawing_endpoint(
     if not request.image_data:
         raise HTTPException(status_code=400, detail="Image data is required")
     
+    # Extract options from the prompt
+    options = []
+    if request.prompt:
+        logger.info("Available options from prompt:")
+        for line in request.prompt.split('\n'):
+            if ':' in line and line.strip().startswith(('0:', '1:', '2:', '3:')):
+                option = line.split(':', 1)[1].strip()
+                options.append(option)
+                logger.info(f"  {line.strip()}")
+    
     result = analyze_drawing(request.image_data, request.prompt)
     
     if not result["success"]:
@@ -133,7 +143,11 @@ async def analyze_drawing_endpoint(
     # Try to parse the response as a number
     try:
         guess_index = int(result["word"].strip())
-        logger.info(f"Drawing analysis result: index {guess_index}")
+        logger.info(f"Drawing analysis result: AI chose index {guess_index}")
+        if options and 0 <= guess_index < len(options):
+            logger.info(f"AI's choice: '{options[guess_index]}'")
+        else:
+            logger.warning(f"AI's choice index {guess_index} is out of range for available options")
         return {
             "success": True,
             "word": str(guess_index),  # Keep as string for API compatibility
@@ -177,6 +191,12 @@ async def save_game_round(
     Save a game round with the drawing, choices, and results.
     """
     try:
+        logger.info(f"Game round {request.round_number} for game {request.game_id}")
+        logger.info(f"Player's choice: '{request.player_guess}' (index: {request.player_guess_index})")
+        logger.info(f"Drawer's choice: '{request.drawer_choice}' (index: {request.drawer_choice_index})")
+        logger.info(f"AI's guess: '{request.ai_guess}' (index: {request.ai_guess_index})")
+        logger.info(f"Result: {'Correct' if request.is_correct else 'Incorrect'}")
+
         game_round = GameRound(
             game_id=request.game_id,
             round_number=request.round_number,
@@ -203,6 +223,7 @@ async def save_game_round(
             ).count()
             game.final_score = correct_rounds
             db.commit()
+            logger.info(f"Game {request.game_id} completed with final score: {correct_rounds}/{game.total_rounds}")
 
         return {"message": "Game round saved successfully", "id": game_round.id}
     except Exception as e:
@@ -215,7 +236,7 @@ async def get_games(db: Session = Depends(get_db)):
     Get all games with their rounds.
     """
     try:
-        games = db.query(Game).all()
+        games = db.query(Game).order_by(Game.created_at.desc()).all()
         return [
             {
                 "id": game.id,
