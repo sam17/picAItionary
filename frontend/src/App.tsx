@@ -206,13 +206,7 @@ function GameComponent() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-8">
-            {message} {(
-              <span className={`text-4xl font-bold inline-block animate-bounce ml-4 ${
-                points > 0 ? 'text-green-600' : points < 0 ? 'text-red-600' : 'text-gray-600'
-              }`}>
-                {points > 0 ? '+1' : points < 0 ? '-1' : '+0'}
-              </span>
-            )}
+            {message}
           </h2>
           <div className="grid grid-cols-4 gap-6 mb-6 pt-4">
             {phrases.map((phrase, index) => (
@@ -259,13 +253,22 @@ function GameComponent() {
               </div>
             ))}
           </div>
-          <p className="text-xl">
-            <span className="border-2 border-blue-600 px-6 py-2 rounded-full inline-flex items-center gap-2">
-              <span className="text-blue-600">Score</span>
-              <span className="font-bold text-3xl text-blue-600">{score}</span>
-            </span>
-          </p>
-          <div className="grid grid-cols-4 gap-6 mb-6 mt-12">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-4">
+              <p className="text-xl">
+                <span className="border-2 border-blue-600 px-6 py-2 rounded-full inline-flex items-center gap-2">
+                  <span className="text-blue-600">Score</span>
+                  <span className="font-bold text-3xl text-blue-600">{score}</span>
+                </span>
+              </p>
+              <span className={`text-4xl font-bold animate-bounce ${
+                points > 0 ? 'text-green-600' : points < 0 ? 'text-red-600' : 'text-gray-600'
+              }`}>
+                {points > 0 ? '+1' : points < 0 ? '-1' : '+0'}
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-6 mt-0">
             {attemptsLeft > 0 ? (
               <div className="col-span-4 flex justify-center">
                 <button
