@@ -4,7 +4,6 @@ export type GamePhase =
   | 'give-to-drawer'
   | 'give-to-guessers' 
   | 'guessing' 
-  | 'result' 
   | 'show-result'
   | 'game-over';
 
