@@ -194,11 +194,11 @@ function GameComponent() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-8">
-            {message} {points !== 0 && (
+            {message} {(
               <span className={`text-4xl font-bold inline-block animate-bounce ml-4 ${
-                points > 0 ? 'text-green-600' : 'text-red-600'
+                points > 0 ? 'text-green-600' : points < 0 ? 'text-red-600' : 'text-gray-600'
               }`}>
-                {points > 0 ? '+1' : '-1'}
+                {points > 0 ? '+1' : points < 0 ? '-1' : '+0'}
               </span>
             )}
           </h2>
