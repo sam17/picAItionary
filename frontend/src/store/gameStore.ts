@@ -173,7 +173,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.phrases[guessIndex];
-    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : 'No guess';
+    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : state.aiGuess || 'No guess';
 
     console.log('Saving game round with:', {
       game_id: state.currentGameId,
@@ -389,7 +389,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.selectedGuess !== null ? state.phrases[state.selectedGuess] : 'No guess';
-    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : 'No guess';
+    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : state.aiGuess || 'No guess';
     const isCorrect = state.lastGuessCorrect || false;
 
     try {
