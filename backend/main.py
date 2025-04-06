@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from models import get_db, Game, GameRound
 from typing import List
 import json
+from security import verify_api_key, verify_origin, is_cloudflare_ip
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,14 +32,24 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins in development
+    allow_origins=["https://picaitionary.com"],  # Only allow our domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def verify_request(request: Request, call_next):
+    # Verify origin
+    origin = request.headers.get("origin")
+    if origin and not verify_origin(origin):
+        raise HTTPException(status_code=403, detail="Invalid origin")
+
+    # Verify Cloudflare
+    client_ip = request.client.host
+    if not is_cloudflare_ip(client_ip):
+        raise HTTPException(status_code=403, detail="Requests must come through Cloudflare")
+
     logger.info(
         f"Incoming request from {request.client.host}:{request.client.port} "
         f"to {request.url.path}"
@@ -80,7 +91,7 @@ async def root():
     logger.info("Root endpoint accessed")
     return {"message": "PicAictionary Backend API"}
 
-@app.get("/get-clues")
+@app.get("/get-clues", dependencies=[Depends(verify_api_key)])
 async def get_clues():
     """
     Get 4 random clues and indicate which one is correct.
@@ -111,7 +122,7 @@ async def get_clues():
         logger.error(f"Error in get_clues: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/analyze-drawing")
+@app.post("/analyze-drawing", dependencies=[Depends(verify_api_key)])
 async def analyze_drawing_endpoint(
     request: ImageAnalysisRequest,
     db: Session = Depends(get_db)
@@ -161,7 +172,7 @@ async def analyze_drawing_endpoint(
             "confidence": "low"
         }
 
-@app.post("/create-game")
+@app.post("/create-game", dependencies=[Depends(verify_api_key)])
 async def create_game(
     request: GameRequest,
     db: Session = Depends(get_db)
@@ -182,7 +193,7 @@ async def create_game(
         logger.error(f"Error creating game: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/save-game-round")
+@app.post("/save-game-round", dependencies=[Depends(verify_api_key)])
 async def save_game_round(
     request: GameRoundRequest,
     db: Session = Depends(get_db)
