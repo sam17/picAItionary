@@ -215,13 +215,18 @@ function GameComponent() {
                 }`}
               >
                 {phrase}
-                {typeof aiGuess === 'number' && index === aiGuess && (
-                  <div className="absolute -top-8 left-0 right-0 flex justify-center">
+                <div className="absolute -top-8 left-0 right-0 flex justify-center gap-4">
+                  {typeof aiGuess === 'number' && index === aiGuess && (
                     <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
                       <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite]" />
                     </div>
-                  </div>
-                )}
+                  )}
+                  {selectedGuess === index && (
+                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
+                      <span className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite] flex items-center justify-center text-xl font-bold">You</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
