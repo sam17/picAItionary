@@ -14,6 +14,18 @@ const botAnimation = `
     75% { transform: translateY(-8px) rotate(-5deg); }
     100% { transform: translateY(0px) rotate(0deg); }
   }
+
+  @keyframes scale {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes scale-down {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.75); }
+    100% { transform: scale(1); }
+  }
 `;
 
 function GameComponent() {
@@ -171,58 +183,114 @@ function GameComponent() {
   }
 
   if (gamePhase === 'show-result') {
+    const aiGotIt = typeof aiGuess === 'number' && aiGuess === selectedPhraseIndex;
+    const userGotIt = lastGuessCorrect;
+    let message = '';
+    let points = 0;
+
+    if (aiGotIt && !userGotIt) {
+      message = 'Oh no you missed it, but AI got it :(';
+      points = -1;
+    } else if (aiGotIt && userGotIt) {
+      message = 'You got it, but sadly so did AI';
+      points = 0;
+    } else if (!userGotIt && !aiGotIt) {
+      message = 'You didn\'t get it, but AI missed it too';
+      points = 0;
+    } else if (userGotIt && !aiGotIt) {
+      message = 'Yay you got it, and AI did not!';
+      points = 1;
+    }
+
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
-          <h2 className="text-2xl font-bold mb-4">
-            {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
+          <h2 className="text-2xl font-bold mb-8">
+            {message}
           </h2>
-          <div className="grid grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-4 gap-6 mb-6 pt-4">
             {phrases.map((phrase, index) => (
               <div
                 key={`phrase-${index}-${phrase}`}
                 className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
-                    ? 'bg-green-500 text-white font-bold'
-                    : selectedGuess === index
-                    ? 'bg-red-500 text-white font-bold'
+                    ? 'bg-green-500 text-white font-bold ring-4 ring-green-300'
                     : 'bg-gray-100'
                 }`}
               >
                 {phrase}
-                {typeof aiGuess === 'number' && index === aiGuess && (
-                  <div className="absolute -top-8 -right-8">
-                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
-                      <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite]" />
+                <div className={`absolute -top-8 left-0 right-0 flex justify-center ${
+                  aiGuess === index && selectedGuess === index && aiGuess !== selectedPhraseIndex
+                    ? 'gap-2'
+                    : ''
+                }`}>
+                  {typeof aiGuess === 'number' && index === aiGuess && (
+                    <div className={`bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite] ${
+                      aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                        ? 'p-3' : ''
+                    }`}>
+                      <Bot className={`drop-shadow-lg ${
+                        aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                          ? 'w-16 h-16' 
+                          : 'w-12 h-12'
+                      } ${
+                        aiGuess === selectedPhraseIndex ? 'text-green-600' : 'text-gray-600'
+                      }`} />
                     </div>
-                  </div>
-                )}
+                  )}
+                  {selectedGuess === index && (
+                    <div className={`bg-white/90 rounded-full p-1 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite] w-14 h-14 flex items-center justify-center`}>
+                      <span className={`drop-shadow-lg flex items-center justify-center font-bold ${
+                        aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                          ? 'text-red-600 w-8 h-8 text-xl' 
+                          : selectedGuess === selectedPhraseIndex 
+                            ? 'text-green-600 w-12 h-12 text-2xl' 
+                            : 'text-gray-600 w-12 h-12 text-2xl'
+                      }`}>You</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-xl mb-6">Score: {score} | Rounds left: {attemptsLeft}</p>
-          {attemptsLeft > 0 ? (
-            <>
-              <button
-                type="button"
-                onClick={handleContinueToNextRound}
-                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors shadow-lg"
-              >
-                Continue to Next Round
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="mb-4">Game Over! Final Score: {score}</p>
-              <button
-                type="button"
-                onClick={resetGame}
-                className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
-              >
-                Play Again
-              </button>
-            </>
-          )}
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-4">
+              <p className="text-xl">
+                <span className="border-2 border-blue-600 px-6 py-2 rounded-full inline-flex items-center gap-2">
+                  <span className="text-blue-600">{attemptsLeft > 0 ? 'Score' : 'Final Score'}</span>
+                  <span className="font-bold text-3xl text-blue-600">{score}</span>
+                </span>
+              </p>
+              <span className={`text-4xl font-bold animate-bounce ${
+                points > 0 ? 'text-green-600' : points < 0 ? 'text-red-600' : 'text-gray-600'
+              }`}>
+                {points > 0 ? '+1' : points < 0 ? '-1' : '+0'}
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-6 mt-0">
+            {attemptsLeft > 0 ? (
+              <div className="col-span-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleContinueToNextRound}
+                  className="w-1/3 bg-blue-600 text-white py-4 rounded-md hover:bg-blue-700 transition-colors shadow-lg mt-16"
+                >
+                  Next Round ({attemptsLeft} left)
+                </button>
+              </div>
+            ) : (
+              <div className="col-span-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={resetGame}
+                  className="w-1/3 bg-red-500 text-white py-4 rounded-md hover:bg-red-600 transition-colors shadow-lg mt-16"
+                >
+                  Play Again
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
