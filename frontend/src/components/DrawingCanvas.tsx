@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { Eraser, Pencil } from 'lucide-react';
 
 interface DrawingCanvasProps {
   isEnabled: boolean;
@@ -10,6 +11,8 @@ type DrawingEvent = MouseEvent | TouchEvent;
 export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isEraserMode, setIsEraserMode] = useState(false);
+  const [thickness, setThickness] = useState(2);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const { currentDrawing, setCurrentDrawing } = useGameStore();
 
@@ -33,8 +36,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     if (!context) return;
     
     context.lineCap = 'round';
-    context.strokeStyle = 'black';
-    context.lineWidth = Math.max(2, size / 250); // Adjust line width based on canvas size
+    context.strokeStyle = isEraserMode ? 'white' : 'black';
+    context.lineWidth = Math.max(thickness, size / 250) * (isEraserMode ? 2 : 1);
     contextRef.current = context;
 
     // Clear canvas
@@ -49,7 +52,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       };
       img.src = currentDrawing;
     }
-  }, [currentDrawing]);
+  }, [currentDrawing, isEraserMode, thickness]);
 
   useEffect(() => {
     resizeCanvas();
@@ -83,10 +86,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     if (!isEnabled) return;
     event.preventDefault();
     const { x, y } = getCoordinates(event);
-    contextRef.current?.beginPath();
-    contextRef.current?.moveTo(x, y);
+    const context = contextRef.current;
+    if (!context) return;
+
+    context.beginPath();
+    context.moveTo(x, y);
+    context.strokeStyle = isEraserMode ? 'white' : 'black';
+    context.lineWidth = Math.max(thickness, canvasRef.current?.width ? canvasRef.current.width / 250 : 2) * (isEraserMode ? 2 : 1);
     setIsDrawing(true);
-  }, [isEnabled, getCoordinates]);
+  }, [isEnabled, getCoordinates, isEraserMode, thickness]);
 
   const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
@@ -141,6 +149,39 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-[500px]">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEraserMode(false)}
+            className={`p-2 rounded-md ${!isEraserMode ? 'bg-blue-100' : 'bg-gray-100'}`}
+            disabled={!isEnabled}
+          >
+            <Pencil className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEraserMode(true)}
+            className={`p-2 rounded-md ${isEraserMode ? 'bg-blue-100' : 'bg-gray-100'}`}
+            disabled={!isEnabled}
+          >
+            <Eraser className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-sm whitespace-nowrap">Thickness:</span>
+          <input
+            type="range"
+            min="1"
+            max="20"
+            value={thickness}
+            onChange={(e) => setThickness(Number(e.target.value))}
+            className="w-full sm:w-32"
+            disabled={!isEnabled}
+          />
+          <span className="text-sm w-6 text-center">{thickness}</span>
+        </div>
+      </div>
       <canvas
         ref={canvasRef}
         className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square`}
