@@ -257,7 +257,7 @@ function GameComponent() {
             <div className="flex items-center gap-4">
               <p className="text-xl">
                 <span className="border-2 border-blue-600 px-6 py-2 rounded-full inline-flex items-center gap-2">
-                  <span className="text-blue-600">Score</span>
+                  <span className="text-blue-600">{attemptsLeft > 0 ? 'Score' : 'Final Score'}</span>
                   <span className="font-bold text-3xl text-blue-600">{score}</span>
                 </span>
               </p>
@@ -280,16 +280,15 @@ function GameComponent() {
                 </button>
               </div>
             ) : (
-              <>
-                <p className="mb-4">Game Over! Final Score: {score}</p>
+              <div className="col-span-4 flex justify-center">
                 <button
                   type="button"
                   onClick={resetGame}
-                  className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
+                  className="w-1/3 bg-red-500 text-white py-4 rounded-md hover:bg-red-600 transition-colors shadow-lg mt-16"
                 >
                   Play Again
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
