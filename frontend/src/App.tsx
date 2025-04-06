@@ -193,7 +193,7 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-2xl font-bold mb-8">
             {message} {points !== 0 && (
               <span className={`text-4xl font-bold inline-block animate-bounce ml-4 ${
                 points > 0 ? 'text-green-600' : 'text-red-600'
@@ -202,7 +202,7 @@ function GameComponent() {
               </span>
             )}
           </h2>
-          <div className="grid grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-4 gap-6 mb-6 pt-4">
             {phrases.map((phrase, index) => (
               <div
                 key={`phrase-${index}-${phrase}`}
@@ -216,7 +216,7 @@ function GameComponent() {
               >
                 {phrase}
                 {typeof aiGuess === 'number' && index === aiGuess && (
-                  <div className="absolute -top-8 -right-8">
+                  <div className="absolute -top-8 left-0 right-0 flex justify-center">
                     <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
                       <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite]" />
                     </div>
