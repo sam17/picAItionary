@@ -14,6 +14,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const [isEraserMode, setIsEraserMode] = useState(false);
   const [thickness, setThickness] = useState(2);
   const [color, setColor] = useState('#000000');
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const { currentDrawing, setCurrentDrawing } = useGameStore();
 
@@ -148,6 +149,36 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     };
   }, [startDrawing, draw, stopDrawing]);
 
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Use requestAnimationFrame to prevent excessive updates
+    requestAnimationFrame(() => {
+      setCursorPosition({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      canvas.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [handleMouseMove]);
+
+  // Calculate the actual brush size based on canvas width
+  const getBrushSize = useCallback(() => {
+    if (!canvasRef.current) return thickness;
+    return Math.max(thickness, canvasRef.current.width / 250) * (isEraserMode ? 2 : 1);
+  }, [thickness, isEraserMode]);
+
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {isEnabled && (
@@ -212,11 +243,48 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
           </div>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
-        className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square shadow-md`}
-        style={{ touchAction: 'none' }}
-      />
+      <div className="relative w-full max-w-[500px]">
+        <canvas
+          ref={canvasRef}
+          className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none w-full aspect-square shadow-md`}
+          style={{ 
+            touchAction: 'none',
+            cursor: isEnabled ? 'none' : 'default'
+          }}
+        />
+        {isEnabled && !isDrawing && (
+          <>
+            {/* Main brush circle */}
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: cursorPosition.x,
+                top: cursorPosition.y,
+                width: `${getBrushSize()}px`,
+                height: `${getBrushSize()}px`,
+                border: `1px solid ${isEraserMode ? 'rgba(0, 0, 0, 0.5)' : color}`,
+                backgroundColor: isEraserMode ? 'rgba(255, 255, 255, 0.3)' : `${color}33`,
+                transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
+                transition: 'width 0.1s, height 0.1s'
+              }}
+            />
+            {/* Center dot for precision */}
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: cursorPosition.x,
+                top: cursorPosition.y,
+                width: '2px',
+                height: '2px',
+                backgroundColor: isEraserMode ? 'rgba(0, 0, 0, 0.5)' : color,
+                transform: 'translate(-50%, -50%)',
+                borderRadius: '50%'
+              }}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 };
