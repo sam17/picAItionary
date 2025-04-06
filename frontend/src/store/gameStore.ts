@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import type { GameStore } from '../types';
 import { BACKEND_URL } from '../config';
 
+const API_KEY = import.meta.env.VITE_API_KEY;
+
+const headers = {
+  'Content-Type': 'application/json',
+  'X-API-Key': API_KEY
+};
+
 export const useGameStore = create<GameStore>((set, get) => ({
   phrases: [],
   selectedPhraseIndex: null,
@@ -27,9 +34,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // First create a new game
       const gameResponse = await fetch(`${BACKEND_URL}/create-game`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           total_rounds: maxAttempts,
         }),
@@ -42,7 +47,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const gameData = await gameResponse.json();
       
       // Then get the first round's clues
-      const cluesResponse = await fetch(`${BACKEND_URL}/get-clues`);
+      const cluesResponse = await fetch(`${BACKEND_URL}/get-clues`, {
+        headers
+      });
       if (!cluesResponse.ok) {
         throw new Error('Failed to fetch clues');
       }
@@ -97,9 +104,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Then send the drawing to AI for analysis
       const response = await fetch(`${BACKEND_URL}/analyze-drawing`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           image_data: state.currentDrawing,
           prompt: `This is a drawing from a word-guessing game. The drawing represents one of these numbered options:\n${phrasesWithIndices.join('\n')}\nPlease respond with just the number (0-${state.phrases.length - 1}) of the option you think is being drawn. Respond with only the number, nothing else.`
@@ -183,9 +188,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Save the game round
     fetch(`${BACKEND_URL}/save-game-round`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         game_id: state.currentGameId,
         round_number: state.currentRoundNumber,
@@ -266,7 +269,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   continueToNextRound: async () => {
     try {
       const state = get();
-      const response = await fetch(`${BACKEND_URL}/get-clues`);
+      const response = await fetch(`${BACKEND_URL}/get-clues`, {
+        headers
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch clues');
       }
@@ -370,9 +375,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const response = await fetch(`${BACKEND_URL}/save-game-round`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           image_data: state.currentDrawing,
           all_options: state.phrases,
