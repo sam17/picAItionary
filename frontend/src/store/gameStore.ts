@@ -223,7 +223,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           totalRounds: data.total_rounds,
           oldScore: state.score,
           newScore: data.current_score,
-          isCorrect: correct
+          isCorrect: correct,
+          aiGuess: state.aiGuess,
+          selectedPhraseIndex: currentSelectedPhraseIndex,
+          aiCorrect: state.aiGuess === currentSelectedPhraseIndex,
+          playerCorrect: correct
         });
         return {
           lastGuessCorrect: correct,
@@ -245,13 +249,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
           console.error('selectedPhraseIndex is null in set callback');
           return state;
         }
-        const newScore = correct ? state.score + 1 : state.score;
+        const ai_correct = state.aiGuess === currentSelectedPhraseIndex;
+        const player_correct = correct;
+        
+        let points = 0;
+        if (ai_correct && !player_correct) {
+          points = -1;
+        } else if (ai_correct && player_correct) {
+          points = 0;
+        } else if (!player_correct && !ai_correct) {
+          points = 0;
+        } else if (player_correct && !ai_correct) {
+          points = 1;
+        }
+        
+        const newScore = state.score + points;
         console.log('Using fallback score calculation:', {
           roundNumber: state.currentRoundNumber,
           totalRounds: state.maxAttempts,
           oldScore: state.score,
           newScore,
-          isCorrect: correct
+          isCorrect: correct,
+          aiCorrect: ai_correct,
+          points
         });
         return {
           lastGuessCorrect: correct,
