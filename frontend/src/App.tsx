@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import { Timer } from './components/Timer';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { GameHistory } from './components/GameHistory';
+import { GameTitle } from './components/GameTitle';
 import { useGameStore } from './store/gameStore';
 import { Pencil, Timer as TimerIcon, Smartphone, Bot, History } from 'lucide-react';
 
@@ -101,10 +102,7 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center flex items-center justify-center gap-2">
-            <Pencil className="w-6 h-6 sm:w-8 sm:h-8" />
-            Draw & Guess
-          </h1>
+          <GameTitle />
           <div className="mb-4">
             <label htmlFor="maxRounds" className="block text-sm font-medium text-gray-700 mb-2">
               Number of Rounds:
@@ -150,6 +148,7 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96 text-center">
+          <GameTitle />
           <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
           <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the drawer!</h2>
           <button
@@ -168,6 +167,7 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96 text-center">
+          <GameTitle />
           <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
           <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the guessers!</h2>
           <button
@@ -299,6 +299,7 @@ function GameComponent() {
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
+        <GameTitle />
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 mb-4">
             <div className="flex items-center gap-2">
