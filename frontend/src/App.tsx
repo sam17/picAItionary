@@ -208,9 +208,9 @@ function GameComponent() {
                 key={`phrase-${index}-${phrase}`}
                 className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
-                    ? 'bg-green-500 text-white font-bold'
+                    ? 'bg-green-500 text-white font-bold ring-4 ring-green-300'
                     : selectedGuess === index
-                    ? 'bg-red-500 text-white font-bold'
+                    ? 'bg-red-500 text-white font-bold ring-4 ring-red-300'
                     : 'bg-gray-100'
                 }`}
               >
@@ -218,12 +218,16 @@ function GameComponent() {
                 <div className="absolute -top-8 left-0 right-0 flex justify-center gap-4">
                   {typeof aiGuess === 'number' && index === aiGuess && (
                     <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite]">
-                      <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg" />
+                      <Bot className={`w-12 h-12 drop-shadow-lg ${
+                        aiGuess === selectedPhraseIndex ? 'text-green-600' : 'text-red-600'
+                      }`} />
                     </div>
                   )}
                   {selectedGuess === index && (
                     <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite]">
-                      <span className="w-12 h-12 text-blue-600 drop-shadow-lg flex items-center justify-center text-2xl font-bold">You</span>
+                      <span className={`w-12 h-12 drop-shadow-lg flex items-center justify-center text-2xl font-bold ${
+                        selectedGuess === selectedPhraseIndex ? 'text-green-600' : 'text-red-600'
+                      }`}>You</span>
                     </div>
                   )}
                 </div>
