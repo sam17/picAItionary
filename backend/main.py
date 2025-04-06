@@ -241,7 +241,7 @@ async def save_game_round(
             else:  # player_correct and not ai_correct
                 points = 1
                 
-            game.score += points
+            game.final_score += points
             db.commit()
             
             return {
@@ -249,7 +249,7 @@ async def save_game_round(
                 "id": game_round.id,
                 "round_number": game_round.round_number,
                 "total_rounds": game.total_rounds,
-                "current_score": game.score
+                "current_score": game.final_score
             }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
