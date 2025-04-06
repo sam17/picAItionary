@@ -30,34 +30,54 @@ export const GameHistory: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedGames, setExpandedGames] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        console.log('Fetching games from:', `${BACKEND_URL}/games`);
-        const response = await fetch(`${BACKEND_URL}/games`);
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch games: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('Received data:', data);
-        setGames(data);
-        // Expand the most recent game by default
-        if (data.length > 0) {
-          setExpandedGames(new Set([data[0].id]));
-        }
-      } catch (err) {
-        console.error('Error fetching games:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load game history');
-      } finally {
-        setLoading(false);
+  const fetchGames = async () => {
+    try {
+      console.log('Fetching games from:', `${BACKEND_URL}/games`);
+      const response = await fetch(`${BACKEND_URL}/games`);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch games: ${response.status} ${response.statusText}`);
       }
-    };
 
+      const data = await response.json();
+      console.log('Received data:', data);
+      // Log details of game 7 if it exists
+      const game7 = data.find(g => g.id === 7);
+      if (game7) {
+        console.log('Game 7 details:', {
+          id: game7.id,
+          total_rounds: game7.total_rounds,
+          rounds_count: game7.rounds.length,
+          rounds: game7.rounds.map(r => ({
+            round_number: r.round_number,
+            drawer_choice: r.drawer_choice,
+            player_guess: r.player_guess,
+            ai_guess: r.ai_guess
+          }))
+        });
+      }
+      setGames(data);
+      // Expand the most recent game by default
+      if (data.length > 0) {
+        setExpandedGames(new Set([data[0].id]));
+      }
+    } catch (err) {
+      console.error('Error fetching games:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load game history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchGames();
   }, []);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchGames();
+  };
 
   const toggleGame = (gameId: number) => {
     setExpandedGames(prev => {
@@ -111,14 +131,24 @@ export const GameHistory: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Game History</h1>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Game
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Game
+            </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
         <div className="space-y-4">
           {games.map((game) => (
@@ -145,7 +175,7 @@ export const GameHistory: React.FC = () => {
               </button>
 
               <div className={`transition-all duration-300 ease-in-out ${
-                expandedGames.has(game.id) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+                expandedGames.has(game.id) ? 'max-h-[10000px] opacity-100' : 'max-h-0 opacity-0'
               } overflow-hidden`}>
                 <div className="p-6 pt-0 space-y-6">
                   {game.rounds.map((round) => (

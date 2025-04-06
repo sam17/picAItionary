@@ -20,6 +20,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentCorrectPhrase: null,
   currentGameId: null,
   currentRoundNumber: 1,
+  isLoading: false,
 
   startGame: async (maxAttempts) => {
     try {
@@ -81,49 +82,62 @@ export const useGameStore = create<GameStore>((set, get) => ({
   })),
 
   switchToGuessing: async () => {
-    set((state) => {
-      if (!state.currentDrawing) return state;
+    const state = get();
+    if (!state.currentDrawing) return;
 
-      // Send the drawing to AI for analysis
-      fetch(`${BACKEND_URL}/analyze-drawing`, {
+    set({ isLoading: true });
+    
+    try {
+      // First update the game phase immediately
+      set({ gamePhase: 'guessing', isDrawingPhase: false });
+
+      // Create a list of phrases with their indices
+      const phrasesWithIndices = state.phrases.map((phrase, index) => `${index}: ${phrase}`);
+
+      // Then send the drawing to AI for analysis
+      const response = await fetch(`${BACKEND_URL}/analyze-drawing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           image_data: state.currentDrawing,
-          prompt: `This is a drawing from a word-guessing game. The drawing represents one of these words: ${state.phrases.join(', ')}. Which word is being drawn? Respond with just the word, nothing else.`
+          prompt: `This is a drawing from a word-guessing game. The drawing represents one of these numbered options:\n${phrasesWithIndices.join('\n')}\nPlease respond with just the number (0-${state.phrases.length - 1}) of the option you think is being drawn. Respond with only the number, nothing else.`
         }),
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to analyze drawing');
-        }
-        return response.json();
-      })
-      .then(result => {
-        if (result.success) {
-          set(state => ({
-            ...state,
-            gamePhase: 'give-to-guessers',
-            isDrawingPhase: false,
-            aiGuess: result.word,
-          }));
-        }
-      })
-      .catch(error => {
-        console.error('Error analyzing drawing:', error);
-        // Still switch to guessing phase even if AI analysis fails
-        set(state => ({
-          ...state,
-          gamePhase: 'give-to-guessers',
-          isDrawingPhase: false,
-        }));
       });
 
-      // Return current state while the fetch is in progress
-      return state;
-    });
+      if (!response.ok) {
+        throw new Error('Failed to analyze drawing');
+      }
+
+      const data = await response.json();
+      console.log('AI Response:', data);
+      
+      // Handle the AI guess safely - expecting a number in the word field
+      if (data?.word && data.success) {
+        // Convert the response to a number and validate it's in range
+        const guessIndex = Number.parseInt(data.word, 10);
+        const isValidIndex = !Number.isNaN(guessIndex) && guessIndex >= 0 && guessIndex < state.phrases.length;
+        
+        console.log('Setting AI guess index:', isValidIndex ? guessIndex : null);
+        set({
+          aiGuess: isValidIndex ? guessIndex : null,
+          isLoading: false
+        });
+      } else {
+        console.log('No valid AI guess found in response');
+        set({ 
+          aiGuess: null,
+          isLoading: false 
+        });
+      }
+    } catch (error) {
+      console.error('Error analyzing drawing:', error);
+      set({ 
+        aiGuess: null,
+        isLoading: false 
+      });
+    }
   },
 
   startGuessing: () => set((state) => ({
@@ -134,11 +148,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   makeGuess: (correct: boolean, guessIndex: number) => {
     const state = get();
-    if (!state.selectedPhraseIndex || !state.phrases[state.selectedPhraseIndex]) return;
+    console.log('makeGuess called with:', { correct, guessIndex });
+    console.log('Current state:', {
+      selectedPhraseIndex: state.selectedPhraseIndex,
+      phrases: state.phrases,
+      gamePhase: state.gamePhase,
+      currentGameId: state.currentGameId,
+      currentScore: state.score
+    });
+    
+    if (!state.selectedPhraseIndex || !state.phrases[state.selectedPhraseIndex]) {
+      console.error('Invalid state for making guess:', {
+        selectedPhraseIndex: state.selectedPhraseIndex,
+        phrasesLength: state.phrases.length
+      });
+      return;
+    }
     
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.phrases[guessIndex];
-    const aiGuess = state.aiGuess || 'No guess';
+    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : 'No guess';
+
+    console.log('Saving game round with:', {
+      game_id: state.currentGameId,
+      round_number: state.currentRoundNumber,
+      drawer_choice: drawerChoice,
+      player_guess: playerGuess,
+      ai_guess: aiGuess,
+      is_correct: correct,
+      current_score: state.score
+    });
 
     // Save the game round
     fetch(`${BACKEND_URL}/save-game-round`, {
@@ -152,24 +191,70 @@ export const useGameStore = create<GameStore>((set, get) => ({
         image_data: state.currentDrawing,
         all_options: state.phrases,
         drawer_choice: drawerChoice,
+        drawer_choice_index: state.selectedPhraseIndex,
         ai_guess: aiGuess,
+        ai_guess_index: state.aiGuess,
         player_guess: playerGuess,
+        player_guess_index: guessIndex,
         is_correct: correct,
       }),
-    }).catch(error => {
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to save game round: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Game round saved successfully:', data);
+      // Update the score based on backend response
+      set((state) => {
+        if (!state.selectedPhraseIndex) {
+          console.error('selectedPhraseIndex is null in set callback');
+          return state;
+        }
+        console.log('Score update details:', {
+          roundNumber: data.round_number,
+          totalRounds: data.total_rounds,
+          oldScore: state.score,
+          newScore: data.current_score,
+          isCorrect: correct
+        });
+        return {
+          lastGuessCorrect: correct,
+          attemptsLeft: state.attemptsLeft - 1,
+          score: data.current_score,
+          gamePhase: 'show-result',
+          selectedGuess: guessIndex,
+          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+        };
+      });
+    })
+    .catch(error => {
       console.error('Error saving game round:', error);
-    });
-
-    set((state) => {
-      if (!state.selectedPhraseIndex) return state;
-      return {
-        lastGuessCorrect: correct,
-        attemptsLeft: state.attemptsLeft - 1,
-        score: correct ? state.score + 1 : state.score,
-        gamePhase: 'show-result',
-        selectedGuess: guessIndex,
-        currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
-      };
+      // Fallback to local score calculation if backend fails
+      set((state) => {
+        if (!state.selectedPhraseIndex) {
+          console.error('selectedPhraseIndex is null in set callback');
+          return state;
+        }
+        const newScore = correct ? state.score + 1 : state.score;
+        console.log('Using fallback score calculation:', {
+          roundNumber: state.currentRoundNumber,
+          totalRounds: state.maxAttempts,
+          oldScore: state.score,
+          newScore,
+          isCorrect: correct
+        });
+        return {
+          lastGuessCorrect: correct,
+          attemptsLeft: state.attemptsLeft - 1,
+          score: newScore,
+          gamePhase: 'show-result',
+          selectedGuess: guessIndex,
+          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+        };
+      });
     });
   },
 
@@ -262,7 +347,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     isDrawingPhase: isDrawing,
   })),
 
-  setAiGuess: (guess: string | null) => set(() => ({
+  setAiGuess: (guess: number | null) => set(() => ({
     aiGuess: guess,
   })),
 
@@ -274,7 +359,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.selectedGuess !== null ? state.phrases[state.selectedGuess] : 'No guess';
-    const aiGuess = state.aiGuess || 'No guess';
+    const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : 'No guess';
     const isCorrect = state.lastGuessCorrect || false;
 
     try {
@@ -287,8 +372,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           image_data: state.currentDrawing,
           all_options: state.phrases,
           drawer_choice: drawerChoice,
+          drawer_choice_index: state.selectedPhraseIndex,
           ai_guess: aiGuess,
+          ai_guess_index: state.aiGuess,
           player_guess: playerGuess,
+          player_guess_index: state.selectedGuess,
           is_correct: isCorrect,
         }),
       });

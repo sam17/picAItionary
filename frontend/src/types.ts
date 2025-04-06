@@ -21,11 +21,12 @@ export interface GameState {
   currentDrawing: string | null;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
-  aiGuess: string | null;
+  aiGuess: number | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
   currentGameId: number | null;
   currentRoundNumber: number;
+  isLoading: boolean;
 }
 
 export interface GameStore extends GameState {
@@ -37,22 +38,23 @@ export interface GameStore extends GameState {
   score: number;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
-  aiGuess: string | null;
+  aiGuess: number | null;
   selectedGuess: number | null;
   currentCorrectPhrase: string | null;
   currentGameId: number | null;
   currentRoundNumber: number;
+  isLoading: boolean;
   startGame: (maxAttempts: number) => Promise<void>;
   startDrawing: () => void;
   makeGuess: (correct: boolean, guessIndex: number) => void;
   resetGame: () => void;
-  switchToGuessing: () => void;
+  switchToGuessing: () => Promise<void>;
   startGuessing: () => void;
   continueToNextRound: () => Promise<void>;
   saveGameRound: () => Promise<void>;
   setTimeRemaining: (time: number) => void;
   setCurrentDrawing: (drawing: string | null) => void;
   setIsDrawingPhase: (isDrawing: boolean) => void;
-  setAiGuess: (guess: string | null) => void;
+  setAiGuess: (guess: number | null) => void;
   endGame: () => Promise<void>;
 }

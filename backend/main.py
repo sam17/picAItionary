@@ -65,8 +65,11 @@ class GameRoundRequest(BaseModel):
     image_data: str
     all_options: List[str]
     drawer_choice: str
+    drawer_choice_index: int
     ai_guess: str
+    ai_guess_index: int | None
     player_guess: str
+    player_guess_index: int | None
     is_correct: bool
 
 class GameRequest(BaseModel):
@@ -115,10 +118,21 @@ async def analyze_drawing_endpoint(
 ):
     """
     Analyze a drawing using OpenAI's GPT-4 Vision model.
+    Expects a prompt asking for an index and returns a numeric index.
     """
     logger.info("Received drawing analysis request")
     if not request.image_data:
         raise HTTPException(status_code=400, detail="Image data is required")
+    
+    # Extract options from the prompt
+    options = []
+    if request.prompt:
+        logger.info("Available options from prompt:")
+        for line in request.prompt.split('\n'):
+            if ':' in line and line.strip().startswith(('0:', '1:', '2:', '3:')):
+                option = line.split(':', 1)[1].strip()
+                options.append(option)
+                logger.info(f"  {line.strip()}")
     
     result = analyze_drawing(request.image_data, request.prompt)
     
@@ -126,8 +140,26 @@ async def analyze_drawing_endpoint(
         logger.error(f"Error analyzing drawing: {result['error']}")
         raise HTTPException(status_code=500, detail=result["error"])
     
-    logger.info(f"Drawing analysis result: {result['word']}")
-    return result
+    # Try to parse the response as a number
+    try:
+        guess_index = int(result["word"].strip())
+        logger.info(f"Drawing analysis result: AI chose index {guess_index}")
+        if options and 0 <= guess_index < len(options):
+            logger.info(f"AI's choice: '{options[guess_index]}'")
+        else:
+            logger.warning(f"AI's choice index {guess_index} is out of range for available options")
+        return {
+            "success": True,
+            "word": str(guess_index),  # Keep as string for API compatibility
+            "confidence": result.get("confidence", "high")
+        }
+    except (ValueError, AttributeError):
+        logger.error("Failed to parse AI response as number")
+        return {
+            "success": False,
+            "word": None,
+            "confidence": "low"
+        }
 
 @app.post("/create-game")
 async def create_game(
@@ -159,31 +191,62 @@ async def save_game_round(
     Save a game round with the drawing, choices, and results.
     """
     try:
+        logger.info(f"Game round {request.round_number} for game {request.game_id}")
+        logger.info(f"Player's choice: '{request.player_guess}' (index: {request.player_guess_index})")
+        logger.info(f"Drawer's choice: '{request.drawer_choice}' (index: {request.drawer_choice_index})")
+        logger.info(f"AI's guess: '{request.ai_guess}' (index: {request.ai_guess_index})")
+        logger.info(f"Result: {'Correct' if request.is_correct else 'Incorrect'}")
+
         game_round = GameRound(
             game_id=request.game_id,
             round_number=request.round_number,
             image_data=request.image_data,
             all_options=json.dumps(request.all_options),
             drawer_choice=request.drawer_choice,
+            drawer_choice_index=request.drawer_choice_index,
             ai_guess=request.ai_guess,
+            ai_guess_index=request.ai_guess_index,
             player_guess=request.player_guess,
+            player_guess_index=request.player_guess_index,
             is_correct=request.is_correct
         )
         db.add(game_round)
         db.commit()
         db.refresh(game_round)
 
-        # Update game's final score if this is the last round
+        # Update game's score after every round
         game = db.query(Game).filter(Game.id == request.game_id).first()
-        if game and request.round_number == game.total_rounds:
+        if game:
+            # Count only completed rounds that were correct
             correct_rounds = db.query(GameRound).filter(
                 GameRound.game_id == request.game_id,
                 GameRound.is_correct == True
             ).count()
+            
+            # Log detailed score information
+            logger.info(f"Score calculation for game {request.game_id}:")
+            logger.info(f"- Current round: {request.round_number}")
+            logger.info(f"- Total rounds: {game.total_rounds}")
+            logger.info(f"- Correct rounds: {correct_rounds}")
+            logger.info(f"- Previous score: {game.final_score}")
+            
+            # Update the score
             game.final_score = correct_rounds
             db.commit()
+            
+            logger.info(f"Game {request.game_id} score updated: {correct_rounds}/{game.total_rounds}")
+            
+            # If this was the last round, log the final score
+            if request.round_number == game.total_rounds:
+                logger.info(f"Game {request.game_id} completed with final score: {correct_rounds}/{game.total_rounds}")
 
-        return {"message": "Game round saved successfully", "id": game_round.id}
+        return {
+            "message": "Game round saved successfully", 
+            "id": game_round.id, 
+            "current_score": correct_rounds,
+            "round_number": request.round_number,
+            "total_rounds": game.total_rounds if game else None
+        }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,7 +257,7 @@ async def get_games(db: Session = Depends(get_db)):
     Get all games with their rounds.
     """
     try:
-        games = db.query(Game).all()
+        games = db.query(Game).order_by(Game.created_at.desc()).all()
         return [
             {
                 "id": game.id,

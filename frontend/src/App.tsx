@@ -37,6 +37,7 @@ function GameComponent() {
     switchToGuessing,
     startGuessing,
     continueToNextRound,
+    isLoading,
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(10);
@@ -189,7 +190,7 @@ function GameComponent() {
                 }`}
               >
                 {phrase}
-                {phrase === aiGuess && (
+                {typeof aiGuess === 'number' && index === aiGuess && (
                   <div className="absolute -top-8 -right-8">
                     <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm">
                       <Bot className="w-12 h-12 text-blue-600 drop-shadow-lg animate-[float_3s_ease-in-out_infinite]" />
@@ -236,7 +237,7 @@ function GameComponent() {
               <TimerIcon className="w-6 h-6" />
               <Timer 
                 key={`${gamePhase}-${isDrawingPhase}`} 
-                duration={isDrawingPhase ? 30 : 60} 
+                duration={isDrawingPhase ? 60 : 60} 
                 onTimeUp={handleTimeUp} 
               />
             </div>
@@ -269,9 +270,14 @@ function GameComponent() {
                 <button
                   type="button"
                   onClick={() => switchToGuessing()}
-                  className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 transition-colors"
+                  disabled={isLoading}
+                  className={`bg-green-500 text-white px-6 py-2 rounded-md transition-colors ${
+                    isLoading 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:bg-green-600'
+                  }`}
                 >
-                  Done Drawing
+                  {isLoading ? 'Processing...' : 'Done Drawing'}
                 </button>
               </div>
             </div>
@@ -286,7 +292,12 @@ function GameComponent() {
                   <button
                     key={`phrase-${index}-${phrase}`}
                     type="button"
-                    onClick={() => setLocalSelectedGuess(index)}
+                    onClick={() => {
+                      console.log('Option clicked:', index, phrase);
+                      console.log('Current game phase:', gamePhase);
+                      console.log('Current selectedPhraseIndex:', selectedPhraseIndex);
+                      setLocalSelectedGuess(index);
+                    }}
                     className={`w-full p-4 rounded-lg border-2 transition-colors ${
                       localSelectedGuess === index
                         ? 'border-blue-500 bg-blue-50'
@@ -301,6 +312,10 @@ function GameComponent() {
                 <button
                   type="button"
                   onClick={() => {
+                    console.log('Guess button clicked');
+                    console.log('localSelectedGuess:', localSelectedGuess);
+                    console.log('selectedPhraseIndex:', selectedPhraseIndex);
+                    console.log('gamePhase:', gamePhase);
                     if (localSelectedGuess !== null) {
                       makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
                       setLocalSelectedGuess(null);
