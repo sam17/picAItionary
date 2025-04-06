@@ -194,7 +194,13 @@ function GameComponent() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-4">
-            {message}
+            {message} {points !== 0 && (
+              <span className={`text-4xl font-bold inline-block animate-bounce ml-4 ${
+                points > 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {points > 0 ? '+1' : '-1'}
+              </span>
+            )}
           </h2>
           <div className="grid grid-cols-4 gap-6 mb-6">
             {phrases.map((phrase, index) => (
@@ -219,9 +225,7 @@ function GameComponent() {
               </div>
             ))}
           </div>
-          <p className="text-xl mb-6">
-            Points this round: {points > 0 ? `+${points}` : points} | Total Score: {score} | Rounds left: {attemptsLeft}
-          </p>
+          <p className="text-xl mb-6">Total Score: {score} | Rounds left: {attemptsLeft}</p>
           {attemptsLeft > 0 ? (
             <>
               <button
