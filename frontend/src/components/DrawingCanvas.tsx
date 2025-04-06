@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { Eraser, Pencil } from 'lucide-react';
+import { Eraser, Pencil, Palette } from 'lucide-react';
 
 interface DrawingCanvasProps {
   isEnabled: boolean;
@@ -13,6 +13,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEraserMode, setIsEraserMode] = useState(false);
   const [thickness, setThickness] = useState(2);
+  const [color, setColor] = useState('#000000');
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const { currentDrawing, setCurrentDrawing } = useGameStore();
 
@@ -36,7 +37,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     if (!context) return;
     
     context.lineCap = 'round';
-    context.strokeStyle = isEraserMode ? 'white' : 'black';
+    context.strokeStyle = isEraserMode ? 'white' : color;
     context.lineWidth = Math.max(thickness, size / 250) * (isEraserMode ? 2 : 1);
     contextRef.current = context;
 
@@ -52,7 +53,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       };
       img.src = currentDrawing;
     }
-  }, [currentDrawing, isEraserMode, thickness]);
+  }, [currentDrawing, isEraserMode, thickness, color]);
 
   useEffect(() => {
     resizeCanvas();
@@ -91,10 +92,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
 
     context.beginPath();
     context.moveTo(x, y);
-    context.strokeStyle = isEraserMode ? 'white' : 'black';
+    context.strokeStyle = isEraserMode ? 'white' : color;
     context.lineWidth = Math.max(thickness, canvasRef.current?.width ? canvasRef.current.width / 250 : 2) * (isEraserMode ? 2 : 1);
     setIsDrawing(true);
-  }, [isEnabled, getCoordinates, isEraserMode, thickness]);
+  }, [isEnabled, getCoordinates, isEraserMode, thickness, color]);
 
   const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
@@ -149,42 +150,71 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
-      <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-[500px]">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setIsEraserMode(false)}
-            className={`p-2 rounded-md ${!isEraserMode ? 'bg-blue-100' : 'bg-gray-100'}`}
-            disabled={!isEnabled}
-          >
-            <Pencil className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEraserMode(true)}
-            className={`p-2 rounded-md ${isEraserMode ? 'bg-blue-100' : 'bg-gray-100'}`}
-            disabled={!isEnabled}
-          >
-            <Eraser className="w-5 h-5" />
-          </button>
+      {isEnabled && (
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-[500px]">
+          <div className="flex gap-2 bg-gray-100 p-2 rounded-lg shadow-sm">
+            <button
+              type="button"
+              onClick={() => setIsEraserMode(false)}
+              className={`p-2 rounded-md transition-all duration-200 ${
+                !isEraserMode 
+                  ? 'bg-blue-500 text-white shadow-md' 
+                  : 'bg-white text-gray-600 hover:bg-gray-200'
+              }`}
+              disabled={!isEnabled}
+            >
+              <Pencil className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEraserMode(true)}
+              className={`p-2 rounded-md transition-all duration-200 ${
+                isEraserMode 
+                  ? 'bg-blue-500 text-white shadow-md' 
+                  : 'bg-white text-gray-600 hover:bg-gray-200'
+              }`}
+              disabled={!isEnabled}
+            >
+              <Eraser className="w-5 h-5" />
+            </button>
+            <div className="relative group">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-9 h-9 rounded-md cursor-pointer opacity-0 absolute"
+                disabled={!isEnabled || isEraserMode}
+              />
+              <div className={`w-9 h-9 rounded-md flex items-center justify-center transition-all duration-200 ${
+                !isEnabled || isEraserMode
+                  ? 'bg-gray-200 text-gray-400'
+                  : 'bg-white text-gray-600 hover:bg-gray-200'
+              }`}>
+                <Palette className="w-5 h-5" />
+              </div>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                Color Picker
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto bg-gray-100 p-2 rounded-lg shadow-sm">
+            <span className="text-sm font-medium text-gray-600">Thickness:</span>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={thickness}
+              onChange={(e) => setThickness(Number(e.target.value))}
+              className="w-full sm:w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:hover:bg-blue-600"
+              disabled={!isEnabled}
+            />
+            <span className="text-sm font-medium text-gray-600 w-6 text-center">{thickness}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-sm whitespace-nowrap">Thickness:</span>
-          <input
-            type="range"
-            min="1"
-            max="20"
-            value={thickness}
-            onChange={(e) => setThickness(Number(e.target.value))}
-            className="w-full sm:w-32"
-            disabled={!isEnabled}
-          />
-          <span className="text-sm w-6 text-center">{thickness}</span>
-        </div>
-      </div>
+      )}
       <canvas
         ref={canvasRef}
-        className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square`}
+        className={`border-2 ${isEnabled ? 'border-blue-500' : 'border-gray-300'} rounded-lg bg-white touch-none max-w-[500px] w-full aspect-square shadow-md`}
         style={{ touchAction: 'none' }}
       />
     </div>
