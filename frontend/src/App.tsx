@@ -14,6 +14,18 @@ const botAnimation = `
     75% { transform: translateY(-8px) rotate(-5deg); }
     100% { transform: translateY(0px) rotate(0deg); }
   }
+
+  @keyframes scale {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes scale-down {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.75); }
+    100% { transform: scale(1); }
+  }
 `;
 
 function GameComponent() {
@@ -213,18 +225,33 @@ function GameComponent() {
                 }`}
               >
                 {phrase}
-                <div className="absolute -top-8 left-0 right-0 flex justify-center gap-4">
+                <div className={`absolute -top-8 left-0 right-0 flex justify-center ${
+                  aiGuess === index && selectedGuess === index && aiGuess !== selectedPhraseIndex
+                    ? 'gap-2'
+                    : ''
+                }`}>
                   {typeof aiGuess === 'number' && index === aiGuess && (
-                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite]">
-                      <Bot className={`w-12 h-12 drop-shadow-lg ${
+                    <div className={`bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite] ${
+                      aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                        ? 'p-3' : ''
+                    }`}>
+                      <Bot className={`drop-shadow-lg ${
+                        aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                          ? 'w-16 h-16' 
+                          : 'w-12 h-12'
+                      } ${
                         aiGuess === selectedPhraseIndex ? 'text-green-600' : 'text-gray-600'
                       }`} />
                     </div>
                   )}
                   {selectedGuess === index && (
-                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite]">
-                      <span className={`w-12 h-12 drop-shadow-lg flex items-center justify-center text-2xl font-bold ${
-                        selectedGuess === selectedPhraseIndex ? 'text-green-600' : 'text-gray-600'
+                    <div className={`bg-white/90 rounded-full p-1 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite] w-14 h-14 flex items-center justify-center`}>
+                      <span className={`drop-shadow-lg flex items-center justify-center font-bold ${
+                        aiGuess === selectedPhraseIndex && selectedGuess === selectedPhraseIndex 
+                          ? 'text-red-600 w-8 h-8 text-xl' 
+                          : selectedGuess === selectedPhraseIndex 
+                            ? 'text-green-600 w-12 h-12 text-2xl' 
+                            : 'text-gray-600 w-12 h-12 text-2xl'
                       }`}>You</span>
                     </div>
                   )}
