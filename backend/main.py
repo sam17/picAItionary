@@ -214,18 +214,39 @@ async def save_game_round(
         db.commit()
         db.refresh(game_round)
 
-        # Update game's final score if this is the last round
+        # Update game's score after every round
         game = db.query(Game).filter(Game.id == request.game_id).first()
-        if game and request.round_number == game.total_rounds:
+        if game:
+            # Count only completed rounds that were correct
             correct_rounds = db.query(GameRound).filter(
                 GameRound.game_id == request.game_id,
                 GameRound.is_correct == True
             ).count()
+            
+            # Log detailed score information
+            logger.info(f"Score calculation for game {request.game_id}:")
+            logger.info(f"- Current round: {request.round_number}")
+            logger.info(f"- Total rounds: {game.total_rounds}")
+            logger.info(f"- Correct rounds: {correct_rounds}")
+            logger.info(f"- Previous score: {game.final_score}")
+            
+            # Update the score
             game.final_score = correct_rounds
             db.commit()
-            logger.info(f"Game {request.game_id} completed with final score: {correct_rounds}/{game.total_rounds}")
+            
+            logger.info(f"Game {request.game_id} score updated: {correct_rounds}/{game.total_rounds}")
+            
+            # If this was the last round, log the final score
+            if request.round_number == game.total_rounds:
+                logger.info(f"Game {request.game_id} completed with final score: {correct_rounds}/{game.total_rounds}")
 
-        return {"message": "Game round saved successfully", "id": game_round.id}
+        return {
+            "message": "Game round saved successfully", 
+            "id": game_round.id, 
+            "current_score": correct_rounds,
+            "round_number": request.round_number,
+            "total_rounds": game.total_rounds if game else None
+        }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

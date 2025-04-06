@@ -42,6 +42,21 @@ export const GameHistory: React.FC = () => {
 
       const data = await response.json();
       console.log('Received data:', data);
+      // Log details of game 7 if it exists
+      const game7 = data.find(g => g.id === 7);
+      if (game7) {
+        console.log('Game 7 details:', {
+          id: game7.id,
+          total_rounds: game7.total_rounds,
+          rounds_count: game7.rounds.length,
+          rounds: game7.rounds.map(r => ({
+            round_number: r.round_number,
+            drawer_choice: r.drawer_choice,
+            player_guess: r.player_guess,
+            ai_guess: r.ai_guess
+          }))
+        });
+      }
       setGames(data);
       // Expand the most recent game by default
       if (data.length > 0) {
@@ -160,7 +175,7 @@ export const GameHistory: React.FC = () => {
               </button>
 
               <div className={`transition-all duration-300 ease-in-out ${
-                expandedGames.has(game.id) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+                expandedGames.has(game.id) ? 'max-h-[10000px] opacity-100' : 'max-h-0 opacity-0'
               } overflow-hidden`}>
                 <div className="p-6 pt-0 space-y-6">
                   {game.rounds.map((round) => (

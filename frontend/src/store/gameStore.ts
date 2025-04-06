@@ -148,11 +148,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   makeGuess: (correct: boolean, guessIndex: number) => {
     const state = get();
-    if (!state.selectedPhraseIndex || !state.phrases[state.selectedPhraseIndex]) return;
+    console.log('makeGuess called with:', { correct, guessIndex });
+    console.log('Current state:', {
+      selectedPhraseIndex: state.selectedPhraseIndex,
+      phrases: state.phrases,
+      gamePhase: state.gamePhase,
+      currentGameId: state.currentGameId,
+      currentScore: state.score
+    });
+    
+    if (!state.selectedPhraseIndex || !state.phrases[state.selectedPhraseIndex]) {
+      console.error('Invalid state for making guess:', {
+        selectedPhraseIndex: state.selectedPhraseIndex,
+        phrasesLength: state.phrases.length
+      });
+      return;
+    }
     
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.phrases[guessIndex];
     const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : 'No guess';
+
+    console.log('Saving game round with:', {
+      game_id: state.currentGameId,
+      round_number: state.currentRoundNumber,
+      drawer_choice: drawerChoice,
+      player_guess: playerGuess,
+      ai_guess: aiGuess,
+      is_correct: correct,
+      current_score: state.score
+    });
 
     // Save the game round
     fetch(`${BACKEND_URL}/save-game-round`, {
@@ -173,20 +198,63 @@ export const useGameStore = create<GameStore>((set, get) => ({
         player_guess_index: guessIndex,
         is_correct: correct,
       }),
-    }).catch(error => {
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to save game round: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Game round saved successfully:', data);
+      // Update the score based on backend response
+      set((state) => {
+        if (!state.selectedPhraseIndex) {
+          console.error('selectedPhraseIndex is null in set callback');
+          return state;
+        }
+        console.log('Score update details:', {
+          roundNumber: data.round_number,
+          totalRounds: data.total_rounds,
+          oldScore: state.score,
+          newScore: data.current_score,
+          isCorrect: correct
+        });
+        return {
+          lastGuessCorrect: correct,
+          attemptsLeft: state.attemptsLeft - 1,
+          score: data.current_score,
+          gamePhase: 'show-result',
+          selectedGuess: guessIndex,
+          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+        };
+      });
+    })
+    .catch(error => {
       console.error('Error saving game round:', error);
-    });
-
-    set((state) => {
-      if (!state.selectedPhraseIndex) return state;
-      return {
-        lastGuessCorrect: correct,
-        attemptsLeft: state.attemptsLeft - 1,
-        score: correct ? state.score + 1 : state.score,
-        gamePhase: 'show-result',
-        selectedGuess: guessIndex,
-        currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
-      };
+      // Fallback to local score calculation if backend fails
+      set((state) => {
+        if (!state.selectedPhraseIndex) {
+          console.error('selectedPhraseIndex is null in set callback');
+          return state;
+        }
+        const newScore = correct ? state.score + 1 : state.score;
+        console.log('Using fallback score calculation:', {
+          roundNumber: state.currentRoundNumber,
+          totalRounds: state.maxAttempts,
+          oldScore: state.score,
+          newScore,
+          isCorrect: correct
+        });
+        return {
+          lastGuessCorrect: correct,
+          attemptsLeft: state.attemptsLeft - 1,
+          score: newScore,
+          gamePhase: 'show-result',
+          selectedGuess: guessIndex,
+          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+        };
+      });
     });
   },
 

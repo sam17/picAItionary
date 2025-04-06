@@ -292,7 +292,12 @@ function GameComponent() {
                   <button
                     key={`phrase-${index}-${phrase}`}
                     type="button"
-                    onClick={() => setLocalSelectedGuess(index)}
+                    onClick={() => {
+                      console.log('Option clicked:', index, phrase);
+                      console.log('Current game phase:', gamePhase);
+                      console.log('Current selectedPhraseIndex:', selectedPhraseIndex);
+                      setLocalSelectedGuess(index);
+                    }}
                     className={`w-full p-4 rounded-lg border-2 transition-colors ${
                       localSelectedGuess === index
                         ? 'border-blue-500 bg-blue-50'
@@ -307,6 +312,10 @@ function GameComponent() {
                 <button
                   type="button"
                   onClick={() => {
+                    console.log('Guess button clicked');
+                    console.log('localSelectedGuess:', localSelectedGuess);
+                    console.log('selectedPhraseIndex:', selectedPhraseIndex);
+                    console.log('gamePhase:', gamePhase);
                     if (localSelectedGuess !== null) {
                       makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
                       setLocalSelectedGuess(null);
