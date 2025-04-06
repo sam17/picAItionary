@@ -74,6 +74,8 @@ function GameComponent() {
       } else {
         makeGuess(false, -1);
       }
+    } else if (gamePhase === 'drawing') {
+      switchToGuessing();
     }
   };
 
