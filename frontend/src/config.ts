@@ -1,7 +1,2 @@
-// Get the current hostname
-const hostname = window.location.hostname;
-
-// Use localhost for development, otherwise use the current hostname
-export const BACKEND_URL = hostname === 'localhost' 
-  ? 'http://localhost:8000'
-  : `http://${hostname}:8000`; 
+// Get the API URL from environment variables, fallback to development URL
+export const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; 

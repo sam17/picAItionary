@@ -99,10 +99,10 @@ function GameComponent() {
 
   if (!isGameStarted) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96">
-          <h1 className="text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
-            <Pencil className="w-8 h-8" />
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center flex items-center justify-center gap-2">
+            <Pencil className="w-6 h-6 sm:w-8 sm:h-8" />
             Draw & Guess
           </h1>
           <div className="mb-4">
@@ -114,7 +114,7 @@ function GameComponent() {
               type="number"
               value={maxRounds}
               onChange={(e) => setMaxRounds(Number(e.target.value))}
-              className="w-full px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md text-base"
               min="1"
               max="20"
             />
@@ -148,10 +148,10 @@ function GameComponent() {
 
   if (gamePhase === 'give-to-drawer') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96 text-center">
-          <Smartphone className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-          <h2 className="text-2xl font-bold mb-4">Pass the device to the drawer!</h2>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96 text-center">
+          <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the drawer!</h2>
           <button
             type="button"
             onClick={startDrawing}
@@ -166,10 +166,10 @@ function GameComponent() {
 
   if (gamePhase === 'give-to-guessers') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96 text-center">
-          <Smartphone className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-          <h2 className="text-2xl font-bold mb-4">Pass the device to the guessers!</h2>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96 text-center">
+          <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the guessers!</h2>
           <button
             type="button"
             onClick={startGuessing}
@@ -212,7 +212,7 @@ function GameComponent() {
             {phrases.map((phrase, index) => (
               <div
                 key={`phrase-${index}-${phrase}`}
-                className={`p-6 rounded-md text-lg flex items-center justify-center min-h-[100px] relative ${
+                className={`p-3 sm:p-6 rounded-md text-base sm:text-lg flex items-center justify-center min-h-[80px] sm:min-h-[100px] relative ${
                   phrase === currentCorrectPhrase
                     ? 'bg-green-500 text-white font-bold ring-4 ring-green-300'
                     : 'bg-gray-100'
@@ -297,32 +297,32 @@ function GameComponent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <TimerIcon className="w-6 h-6" />
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <TimerIcon className="w-5 h-5" />
               <Timer 
                 key={`${gamePhase}-${isDrawingPhase}`} 
                 duration={isDrawingPhase ? 60 : 60} 
                 onTimeUp={handleTimeUp} 
               />
             </div>
-            <div className="text-lg">
+            <div className="text-base sm:text-lg">
               Rounds left: {attemptsLeft} | Score: {score}
             </div>
           </div>
 
           {isDrawingPhase ? (
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">Make them guess the green word!</h2>
-                <div className="grid grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3">Make them guess the green word!</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                   {phrases.map((phrase, index) => (
                     <div
                       key={`phrase-${index}-${phrase}`}
-                      className={`p-4 rounded-md text-center ${
+                      className={`p-2 sm:p-4 rounded-md text-center text-sm sm:text-base ${
                         index === selectedPhraseIndex
                           ? 'bg-green-500 text-white font-bold'
                           : 'bg-gray-100'
@@ -339,7 +339,7 @@ function GameComponent() {
                   type="button"
                   onClick={() => switchToGuessing()}
                   disabled={isLoading}
-                  className={`bg-green-500 text-white px-6 py-2 rounded-md transition-colors ${
+                  className={`w-full sm:w-auto bg-green-500 text-white px-6 py-2 rounded-md transition-colors ${
                     isLoading 
                       ? 'opacity-50 cursor-not-allowed' 
                       : 'hover:bg-green-600'
@@ -351,22 +351,19 @@ function GameComponent() {
             </div>
           ) : (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Guess the Drawing:</h2>
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Guess the Drawing:</h2>
               <div className="flex justify-center mb-4">
                 <DrawingCanvas isEnabled={false} />
               </div>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {phrases.map((phrase, index) => (
                   <button
                     key={`phrase-${index}-${phrase}`}
                     type="button"
                     onClick={() => {
-                      console.log('Option clicked:', index, phrase);
-                      console.log('Current game phase:', gamePhase);
-                      console.log('Current selectedPhraseIndex:', selectedPhraseIndex);
                       setLocalSelectedGuess(index);
                     }}
-                    className={`w-full p-4 rounded-lg border-2 transition-colors ${
+                    className={`w-full p-3 sm:p-4 rounded-lg border-2 text-sm sm:text-base transition-colors ${
                       localSelectedGuess === index
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-blue-300'
@@ -380,9 +377,7 @@ function GameComponent() {
                 <button
                   type="button"
                   onTouchStart={(e) => {
-                    // Use requestAnimationFrame to handle the event after the browser's default behavior
                     requestAnimationFrame(() => {
-                      console.log('Guess button touched');
                       if (localSelectedGuess !== null) {
                         makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
                         setLocalSelectedGuess(null);
@@ -390,14 +385,13 @@ function GameComponent() {
                     });
                   }}
                   onClick={(e) => {
-                    console.log('Guess button clicked');
                     if (localSelectedGuess !== null) {
                       makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
                       setLocalSelectedGuess(null);
                     }
                   }}
                   disabled={localSelectedGuess === null}
-                  className={`px-8 py-3 rounded-md transition-colors ${
+                  className={`w-full sm:w-auto px-8 py-3 rounded-md text-base transition-colors ${
                     localSelectedGuess === null
                       ? 'bg-gray-300 cursor-not-allowed'
                       : 'bg-green-500 hover:bg-green-600 text-white active:bg-green-700'
@@ -409,15 +403,6 @@ function GameComponent() {
             </div>
           )}
         </div>
-
-        {/* <div className="text-center">
-          <button
-            onClick={resetGame}
-            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
-          >
-            Reset Game
-          </button>
-        </div> */}
       </div>
     </div>
   );
