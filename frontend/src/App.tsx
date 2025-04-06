@@ -259,29 +259,36 @@ function GameComponent() {
               </div>
             ))}
           </div>
-          <p className="text-xl mb-6">Total Score: {score} | Rounds left: {attemptsLeft}</p>
-          {attemptsLeft > 0 ? (
-            <>
-              <button
-                type="button"
-                onClick={handleContinueToNextRound}
-                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors shadow-lg"
-              >
-                Continue to Next Round
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="mb-4">Game Over! Final Score: {score}</p>
-              <button
-                type="button"
-                onClick={resetGame}
-                className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
-              >
-                Play Again
-              </button>
-            </>
-          )}
+          <p className="text-xl">
+            <span className="border-2 border-blue-600 px-6 py-2 rounded-full inline-flex items-center gap-2">
+              <span className="text-blue-600">Score</span>
+              <span className="font-bold text-3xl text-blue-600">{score}</span>
+            </span>
+          </p>
+          <div className="grid grid-cols-4 gap-6 mb-6 mt-12">
+            {attemptsLeft > 0 ? (
+              <div className="col-span-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleContinueToNextRound}
+                  className="w-1/3 bg-blue-600 text-white py-4 rounded-md hover:bg-blue-700 transition-colors shadow-lg mt-16"
+                >
+                  Next Round ({attemptsLeft} left)
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="mb-4">Game Over! Final Score: {score}</p>
+                <button
+                  type="button"
+                  onClick={resetGame}
+                  className="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition-colors shadow-lg"
+                >
+                  Play Again
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
