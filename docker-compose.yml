@@ -12,6 +12,7 @@ services:
       - backend
     environment:
       - VITE_API_URL=https://picaitionary.com/api
+      - VITE_API_KEY=${API_KEY}
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
     networks:
@@ -21,14 +22,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+    expose:
+      - "8000"
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/picaictionary
-      - CORS_ORIGINS=https://picaitionary.com
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_KEY=${API_KEY}
     depends_on:
       - db
     networks:
