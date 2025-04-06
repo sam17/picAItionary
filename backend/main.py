@@ -235,6 +235,7 @@ async def save_game_round(
             
             return {
                 "success": True,
+                "id": game_round.id,
                 "round_number": game_round.round_number,
                 "total_rounds": game.total_rounds,
                 "current_score": game.score
