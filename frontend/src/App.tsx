@@ -40,7 +40,7 @@ function GameComponent() {
     isLoading,
   } = useGameStore();
 
-  const [maxRounds, setMaxRounds] = useState(10);
+  const [maxRounds, setMaxRounds] = useState(3);
   const [localSelectedGuess, setLocalSelectedGuess] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -311,11 +311,18 @@ function GameComponent() {
               <div className="flex justify-center mt-4">
                 <button
                   type="button"
-                  onClick={() => {
+                  onTouchStart={(e) => {
+                    // Use requestAnimationFrame to handle the event after the browser's default behavior
+                    requestAnimationFrame(() => {
+                      console.log('Guess button touched');
+                      if (localSelectedGuess !== null) {
+                        makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
+                        setLocalSelectedGuess(null);
+                      }
+                    });
+                  }}
+                  onClick={(e) => {
                     console.log('Guess button clicked');
-                    console.log('localSelectedGuess:', localSelectedGuess);
-                    console.log('selectedPhraseIndex:', selectedPhraseIndex);
-                    console.log('gamePhase:', gamePhase);
                     if (localSelectedGuess !== null) {
                       makeGuess(localSelectedGuess === selectedPhraseIndex, localSelectedGuess);
                       setLocalSelectedGuess(null);
@@ -325,7 +332,7 @@ function GameComponent() {
                   className={`px-8 py-3 rounded-md transition-colors ${
                     localSelectedGuess === null
                       ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white active:bg-green-700'
                   }`}
                 >
                   Guess

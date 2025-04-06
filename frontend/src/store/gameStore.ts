@@ -7,8 +7,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedPhraseIndex: null,
   currentPlayer: 'drawer',
   timeRemaining: 0,
-  maxAttempts: 10,
-  attemptsLeft: 10,
+  maxAttempts: 3,
+  attemptsLeft: 3,
   score: 0,
   isGameStarted: false,
   isDrawingPhase: true,
@@ -157,10 +157,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentScore: state.score
     });
     
-    if (!state.selectedPhraseIndex || !state.phrases[state.selectedPhraseIndex]) {
+    if (state.selectedPhraseIndex === null || state.selectedPhraseIndex === undefined || 
+        !state.phrases || !state.phrases[state.selectedPhraseIndex]) {
       console.error('Invalid state for making guess:', {
         selectedPhraseIndex: state.selectedPhraseIndex,
-        phrasesLength: state.phrases.length
+        phrasesLength: state.phrases?.length
       });
       return;
     }
@@ -209,7 +210,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.log('Game round saved successfully:', data);
       // Update the score based on backend response
       set((state) => {
-        if (!state.selectedPhraseIndex) {
+        const currentSelectedPhraseIndex = state.selectedPhraseIndex;
+        if (currentSelectedPhraseIndex === null || currentSelectedPhraseIndex === undefined) {
           console.error('selectedPhraseIndex is null in set callback');
           return state;
         }
@@ -226,7 +228,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           score: data.current_score,
           gamePhase: 'show-result',
           selectedGuess: guessIndex,
-          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+          currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
+          selectedPhraseIndex: currentSelectedPhraseIndex // Preserve the index
         };
       });
     })
@@ -234,7 +237,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.error('Error saving game round:', error);
       // Fallback to local score calculation if backend fails
       set((state) => {
-        if (!state.selectedPhraseIndex) {
+        const currentSelectedPhraseIndex = state.selectedPhraseIndex;
+        if (currentSelectedPhraseIndex === null || currentSelectedPhraseIndex === undefined) {
           console.error('selectedPhraseIndex is null in set callback');
           return state;
         }
@@ -252,7 +256,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           score: newScore,
           gamePhase: 'show-result',
           selectedGuess: guessIndex,
-          currentCorrectPhrase: state.phrases[state.selectedPhraseIndex],
+          currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
+          selectedPhraseIndex: currentSelectedPhraseIndex // Preserve the index
         };
       });
     });
@@ -305,7 +310,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         selectedPhraseIndex: null,
         currentPlayer: 'drawer',
         timeRemaining: 0,
-        attemptsLeft: 10,
+        attemptsLeft: 3,
         score: 0,
         isGameStarted: false,
         isDrawingPhase: true,
@@ -329,7 +334,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     selectedPhraseIndex: null,
     currentPlayer: 'drawer',
     timeRemaining: 0,
-    attemptsLeft: 10,
+    attemptsLeft: 3,
     score: 0,
     isGameStarted: false,
     isDrawingPhase: true,
