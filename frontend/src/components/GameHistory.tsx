@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from '../config';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { GameTitle } from './GameTitle';
 
 interface GameRound {
   id: number;
@@ -127,19 +128,20 @@ export const GameHistory: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
+        <GameTitle />
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="mb-4 flex items-center gap-2 text-blue-500 hover:text-blue-600"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Game
+        </button>
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Game History</h1>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Game
-            </button>
             <button
               type="button"
               onClick={handleRefresh}
