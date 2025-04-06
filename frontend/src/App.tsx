@@ -171,11 +171,30 @@ function GameComponent() {
   }
 
   if (gamePhase === 'show-result') {
+    const aiGotIt = typeof aiGuess === 'number' && aiGuess === selectedPhraseIndex;
+    const userGotIt = lastGuessCorrect;
+    let message = '';
+    let points = 0;
+
+    if (aiGotIt && !userGotIt) {
+      message = 'Oh no you missed it, but AI got it :(';
+      points = -1;
+    } else if (aiGotIt && userGotIt) {
+      message = 'You got it, but sadly so did AI';
+      points = 0;
+    } else if (!userGotIt && !aiGotIt) {
+      message = 'You didn\'t get it, but AI missed it too';
+      points = 0;
+    } else if (userGotIt && !aiGotIt) {
+      message = 'Yay you got it, and AI did not!';
+      points = 1;
+    }
+
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
           <h2 className="text-2xl font-bold mb-4">
-            {lastGuessCorrect ? '🎉 You got it!' : 'Nooo, you missed it!'}
+            {message}
           </h2>
           <div className="grid grid-cols-4 gap-6 mb-6">
             {phrases.map((phrase, index) => (
@@ -200,7 +219,9 @@ function GameComponent() {
               </div>
             ))}
           </div>
-          <p className="text-xl mb-6">Score: {score} | Rounds left: {attemptsLeft}</p>
+          <p className="text-xl mb-6">
+            Points this round: {points > 0 ? `+${points}` : points} | Total Score: {score} | Rounds left: {attemptsLeft}
+          </p>
           {attemptsLeft > 0 ? (
             <>
               <button
