@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from models import get_db, Game, GameRound
 from typing import List
 import json
-from security import verify_api_key, verify_origin, is_cloudflare_ip
+from security import verify_api_key, verify_origin, is_cloudflare_ip, ALLOWED_ORIGINS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +32,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://picaitionary.com"],  # Only allow our domain
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

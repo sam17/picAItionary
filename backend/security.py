@@ -9,7 +9,12 @@ load_dotenv()
 
 API_KEY_NAME = "X-API-Key"
 API_KEY = os.getenv("API_KEY", "your-secure-api-key-here")  # Set this in .env
-ALLOWED_ORIGINS = ["https://picaitionary.com"]
+ALLOWED_ORIGINS = [
+    "https://picaitionary.com",
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost",
+    "http://localhost:3000"
+]
 CLOUDFLARE_IPS = [
     "173.245.48.0/20",
     "103.21.244.0/22",

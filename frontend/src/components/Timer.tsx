@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface TimerProps {
   duration: number;
@@ -24,8 +24,9 @@ export const Timer: React.FC<TimerProps> = ({ duration, onTimeUp }) => {
   }, [onTimeUp]);
 
   return (
-    <div className="text-2xl font-bold">
-      Time: {timeLeft}s
+    <div className="text-lg sm:text-2xl font-bold flex items-center gap-2">
+      <span className="text-gray-600">Time:</span>
+      <span className="tabular-nums">{timeLeft}s</span>
     </div>
   );
 };
