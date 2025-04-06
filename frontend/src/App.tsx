@@ -227,6 +227,15 @@ function GameComponent() {
                     </div>
                   )}
                 </div>
+                {phrase === currentCorrectPhrase && (
+                  <div className="absolute -bottom-12 left-0 right-0 flex justify-center">
+                    <div className="bg-white/90 rounded-full p-2 shadow-lg backdrop-blur-sm animate-[float_3s_ease-in-out_infinite]">
+                      <svg className="w-12 h-12 text-green-600 drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
