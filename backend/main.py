@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from models import get_db, Game, GameRound
 from typing import List
 import json
-from security import verify_api_key, verify_origin, is_cloudflare_ip, ALLOWED_ORIGINS
+from security import verify_api_key, verify_origin, ALLOWED_ORIGINS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,13 +59,6 @@ async def verify_request(request: Request, call_next):
     origin = request.headers.get("origin")
     if origin and not verify_origin(origin):
         raise HTTPException(status_code=403, detail="Invalid origin")
-
-    # Skip Cloudflare verification in development
-    if not is_development:
-        # Verify Cloudflare
-        client_ip = request.client.host
-        if not is_cloudflare_ip(client_ip):
-            raise HTTPException(status_code=403, detail="Requests must come through Cloudflare")
 
     logger.info(
         f"Incoming request from {request.client.host}:{request.client.port} "

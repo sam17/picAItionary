@@ -18,23 +18,6 @@ ALLOWED_ORIGINS = [
     "http://10.0.0.0/8",      # Common local network range
     "http://172.16.0.0/12"    # Common local network range
 ]
-CLOUDFLARE_IPS = [
-    "173.245.48.0/20",
-    "103.21.244.0/22",
-    "103.22.200.0/22",
-    "103.31.4.0/22",
-    "141.101.64.0/18",
-    "108.162.192.0/18",
-    "190.93.240.0/20",
-    "188.114.96.0/20",
-    "197.234.240.0/22",
-    "198.41.128.0/17",
-    "162.158.0.0/15",
-    "104.16.0.0/13",
-    "104.24.0.0/14",
-    "172.64.0.0/13",
-    "131.0.72.0/22"
-]
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
@@ -44,13 +27,6 @@ async def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> b
             status_code=HTTP_403_FORBIDDEN, detail="Invalid API key"
         )
     return True
-
-def is_cloudflare_ip(ip: str) -> bool:
-    # For local development, allow all IPs
-    if ip.startswith(('192.168.', '10.', '172.16.', '127.0.0.1')):
-        return True
-    # For production, check against Cloudflare IPs
-    return any(ip.startswith(cf_ip.split('/')[0]) for cf_ip in CLOUDFLARE_IPS)
 
 def verify_origin(origin: str) -> bool:
     # Allow local development origins
