@@ -4,15 +4,13 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
 
-# Create database directory if it doesn't exist
-os.makedirs('data', exist_ok=True)
-
-# Create SQLite database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///data/game.db"
+# Get database URL from environment variable, fallback to SQLite for local development
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/game.db")
 
 # Create SQLAlchemy engine
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 )
 
 # Create SessionLocal class

@@ -69,18 +69,23 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   }, [resizeCanvas]);
 
   const getCoordinates = useCallback((event: DrawingEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     if ('touches' in event) {
       const touch = event.touches[0];
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return { x: 0, y: 0 };
       return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY
       };
     }
     return {
-      x: event.offsetX,
-      y: event.offsetY
+      x: event.offsetX * scaleX,
+      y: event.offsetY * scaleY
     };
   }, []);
 

@@ -13,7 +13,10 @@ ALLOWED_ORIGINS = [
     "https://picaitionary.com",
     "http://localhost:5173",  # Vite dev server
     "http://localhost",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://192.168.0.0/16",  # Common local network range
+    "http://10.0.0.0/8",      # Common local network range
+    "http://172.16.0.0/12"    # Common local network range
 ]
 CLOUDFLARE_IPS = [
     "173.245.48.0/20",
@@ -43,9 +46,15 @@ async def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> b
     return True
 
 def is_cloudflare_ip(ip: str) -> bool:
-    # In production, implement proper IP range checking
-    # This is a simplified version
-    return True  # Temporarily allow all IPs
+    # For local development, allow all IPs
+    if ip.startswith(('192.168.', '10.', '172.16.', '127.0.0.1')):
+        return True
+    # For production, check against Cloudflare IPs
+    return any(ip.startswith(cf_ip.split('/')[0]) for cf_ip in CLOUDFLARE_IPS)
 
 def verify_origin(origin: str) -> bool:
+    # Allow local development origins
+    if origin.startswith(('http://192.168.', 'http://10.', 'http://172.16.', 'http://localhost')):
+        return True
+    # Check against allowed origins
     return origin in ALLOWED_ORIGINS 

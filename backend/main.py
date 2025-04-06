@@ -30,25 +30,42 @@ if not os.getenv("OPENAI_API_KEY"):
 app = FastAPI()
 
 # Configure CORS
+is_development = os.getenv("ENVIRONMENT", "development") == "development"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=ALLOWED_ORIGINS if not is_development else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 @app.middleware("http")
 async def verify_request(request: Request, call_next):
+    # Skip all verification for OPTIONS requests
+    if request.method == "OPTIONS":
+        response = await call_next(request)
+        if is_development:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        else:
+            origin = request.headers.get("origin")
+            if origin in ALLOWED_ORIGINS:
+                response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
     # Verify origin
     origin = request.headers.get("origin")
     if origin and not verify_origin(origin):
         raise HTTPException(status_code=403, detail="Invalid origin")
 
-    # Verify Cloudflare
-    client_ip = request.client.host
-    if not is_cloudflare_ip(client_ip):
-        raise HTTPException(status_code=403, detail="Requests must come through Cloudflare")
+    # Skip Cloudflare verification in development
+    if not is_development:
+        # Verify Cloudflare
+        client_ip = request.client.host
+        if not is_cloudflare_ip(client_ip):
+            raise HTTPException(status_code=403, detail="Requests must come through Cloudflare")
 
     logger.info(
         f"Incoming request from {request.client.host}:{request.client.port} "
