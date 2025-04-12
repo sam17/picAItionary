@@ -1,17 +1,17 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from image_analysis import analyze_drawing
+from ..services.image_analysis import analyze_drawing, generate_witty_response
 import os
 from dotenv import load_dotenv
 import csv
 import random
 import logging
 from sqlalchemy.orm import Session
-from models import get_db, Game, GameRound
-from typing import List
+from ..models.models import get_db, Game, GameRound
+from typing import List, Optional, Union
 import json
-from security import verify_api_key, verify_origin, ALLOWED_ORIGINS
+from ..core.security import verify_api_key, verify_origin, ALLOWED_ORIGINS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -78,7 +78,7 @@ def load_clues():
 
 class ImageAnalysisRequest(BaseModel):
     image_data: str
-    prompt: str | None = None
+    prompt: Optional[str] = None
 
 class GameRoundRequest(BaseModel):
     game_id: int
@@ -88,13 +88,21 @@ class GameRoundRequest(BaseModel):
     drawer_choice: str
     drawer_choice_index: int
     ai_guess: str
-    ai_guess_index: int | None
+    ai_guess_index: Optional[int]
     player_guess: str
-    player_guess_index: int | None
+    player_guess_index: Optional[int]
     is_correct: bool
 
 class GameRequest(BaseModel):
     total_rounds: int
+
+class WittyResponseTestRequest(BaseModel):
+    drawer_choice: str
+    ai_guess: str
+    player_guess: str
+    is_correct: bool
+    image_data: str
+    all_options: List[str]
 
 @app.get("/")
 async def root():
@@ -150,7 +158,8 @@ async def analyze_drawing_endpoint(
     if request.prompt:
         logger.info("Available options from prompt:")
         for line in request.prompt.split('\n'):
-            if ':' in line and line.strip().startswith(('0:', '1:', '2:', '3:')):
+            if (':' in line and 
+                line.strip().startswith(('0:', '1:', '2:', '3:'))):
                 option = line.split(':', 1)[1].strip()
                 options.append(option)
                 logger.info(f"  {line.strip()}")
@@ -168,7 +177,10 @@ async def analyze_drawing_endpoint(
         if options and 0 <= guess_index < len(options):
             logger.info(f"AI's choice: '{options[guess_index]}'")
         else:
-            logger.warning(f"AI's choice index {guess_index} is out of range for available options")
+            logger.warning(
+                f"AI's choice index {guess_index} is out of range for "
+                f"available options"
+            )
         return {
             "success": True,
             "word": str(guess_index),  # Keep as string for API compatibility
@@ -212,11 +224,34 @@ async def save_game_round(
     Save a game round with the drawing, choices, and results.
     """
     try:
-        logger.info(f"Game round {request.round_number} for game {request.game_id}")
-        logger.info(f"Player's choice: '{request.player_guess}' (index: {request.player_guess_index})")
-        logger.info(f"Drawer's choice: '{request.drawer_choice}' (index: {request.drawer_choice_index})")
-        logger.info(f"AI's guess: '{request.ai_guess}' (index: {request.ai_guess_index})")
-        logger.info(f"Result: {'Correct' if request.is_correct else 'Incorrect'}")
+        logger.info(
+            f"Game round {request.round_number} for game {request.game_id}"
+        )
+        logger.info(
+            f"Player's choice: '{request.player_guess}' "
+            f"(index: {request.player_guess_index})"
+        )
+        logger.info(
+            f"Drawer's choice: '{request.drawer_choice}' "
+            f"(index: {request.drawer_choice_index})"
+        )
+        logger.info(
+            f"AI's guess: '{request.ai_guess}' "
+            f"(index: {request.ai_guess_index})"
+        )
+        logger.info(
+            f"Result: {'Correct' if request.is_correct else 'Incorrect'}"
+        )
+
+        # Generate witty response
+        witty_response = generate_witty_response(
+            drawer_choice=request.drawer_choice,
+            ai_guess=request.ai_guess,
+            player_guess=request.player_guess,
+            is_correct=request.is_correct,
+            image_data=request.image_data,
+            all_options=request.all_options
+        )
 
         game_round = GameRound(
             game_id=request.game_id,
@@ -229,7 +264,9 @@ async def save_game_round(
             ai_guess_index=request.ai_guess_index,
             player_guess=request.player_guess,
             player_guess_index=request.player_guess_index,
-            is_correct=request.is_correct
+            is_correct=request.is_correct,
+            witty_response=witty_response.get("message") if witty_response["success"] else None,
+            ai_explanation=witty_response.get("explanation") if witty_response["success"] else None
         )
         db.add(game_round)
         db.commit()
@@ -259,7 +296,9 @@ async def save_game_round(
                 "id": game_round.id,
                 "round_number": game_round.round_number,
                 "total_rounds": game.total_rounds,
-                "current_score": game.final_score
+                "current_score": game.final_score,
+                "witty_response": witty_response.get("message") if witty_response["success"] else None,
+                "ai_explanation": witty_response.get("explanation") if witty_response["success"] else None
             }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
@@ -284,11 +323,15 @@ async def get_games(db: Session = Depends(get_db)):
                         "round_number": round.round_number,
                         "all_options": json.loads(round.all_options),
                         "drawer_choice": round.drawer_choice,
+                        "drawer_choice_index": round.drawer_choice_index,
                         "ai_guess": round.ai_guess,
+                        "ai_guess_index": round.ai_guess_index,
                         "player_guess": round.player_guess,
                         "is_correct": round.is_correct,
                         "created_at": round.created_at,
-                        "image_data": round.image_data
+                        "image_data": round.image_data,
+                        "witty_response": round.witty_response,
+                        "ai_explanation": round.ai_explanation
                     }
                     for round in game.rounds
                 ]
@@ -297,6 +340,32 @@ async def get_games(db: Session = Depends(get_db)):
         ]
     except Exception as e:
         logger.error(f"Error fetching games: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/test-witty-response", dependencies=[Depends(verify_api_key)])
+async def test_witty_response(
+    request: WittyResponseTestRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Test endpoint for the witty response function.
+    """
+    try:
+        result = generate_witty_response(
+            drawer_choice=request.drawer_choice,
+            ai_guess=request.ai_guess,
+            player_guess=request.player_guess,
+            is_correct=request.is_correct,
+            image_data=request.image_data,
+            all_options=request.all_options
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+            
+        return result
+    except Exception as e:
+        logger.error(f"Error generating witty response: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

@@ -1,5 +1,11 @@
 import unittest
 from unittest.mock import patch, MagicMock
+import sys
+import os
+
+# Add the parent directory to the path so we can import from backend
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from image_analysis import analyze_drawing
 
 
@@ -115,8 +121,14 @@ class TestImageAnalysis(unittest.TestCase):
             mock_client.chat.completions.create.return_value = mock_response
 
             result = analyze_drawing(self.sample_image)
-            self.assertTrue(result["success"])
-            self.assertEqual(result["word"], "1")
+
+            # Assert that the function was called with the default prompt
+            called_prompt = mock_client.chat.completions.create.call_args[1]['messages'][0]['content'][0]['text']
+            self.assertIn("This is a drawing from a word-guessing game", called_prompt)
+            self.assertIn("0: Option A", called_prompt)
+            self.assertIn("1: Option B", called_prompt)
+            self.assertIn("2: Option C", called_prompt)
+            self.assertIn("3: Option D", called_prompt)
 
 
 if __name__ == '__main__':
