@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Timer } from './components/Timer';
 import { DrawingCanvas } from './components/DrawingCanvas';
 import { GameHistory } from './components/GameHistory';
+import { GameAnalytics } from './components/GameAnalytics';
 import { GameTitle } from './components/GameTitle';
 import { useGameStore } from './store/gameStore';
-import { Pencil, Timer as TimerIcon, Smartphone, Bot, History } from 'lucide-react';
+import { Pencil, Timer as TimerIcon, Smartphone, Bot, History, BarChart2, ArrowLeft } from 'lucide-react';
 
 // Add the animation keyframes at the top of the file
 const botAnimation = `
@@ -417,12 +418,68 @@ function GameComponent() {
   );
 }
 
+function HistoryComponent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'history' | 'analytics'>(
+    location.pathname === '/history' ? 'history' : 'analytics'
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-blue-500 hover:text-blue-600"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Game
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setActiveTab('history');
+                navigate('/history');
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                activeTab === 'history'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <History className="w-5 h-5" />
+              History
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('analytics');
+                navigate('/analytics');
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                activeTab === 'analytics'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <BarChart2 className="w-5 h-5" />
+              Analytics
+            </button>
+          </div>
+        </div>
+        {activeTab === 'history' ? <GameHistory /> : <GameAnalytics />}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<GameComponent />} />
-        <Route path="/history" element={<GameHistory />} />
+        <Route path="/history" element={<HistoryComponent />} />
+        <Route path="/analytics" element={<HistoryComponent />} />
       </Routes>
     </Router>
   );
