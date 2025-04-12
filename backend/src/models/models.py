@@ -5,7 +5,11 @@ from datetime import datetime
 import os
 
 # Get database URL from environment variable, fallback to SQLite for local development
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/game.db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("DATABASE_URL must be set in production environment")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///data/game.db"
 
 # Create SQLAlchemy engine
 engine = create_engine(
