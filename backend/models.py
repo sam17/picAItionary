@@ -44,6 +44,7 @@ class GameRound(Base):
     player_guess_index = Column(Integer, nullable=True)  # Index of the word the player guessed
     is_correct = Column(Boolean)  # Whether the player's guess was correct
     created_at = Column(DateTime, default=datetime.utcnow)
+    witty_response = Column(String, nullable=True)  # Witty response from AI about the round outcome
     game = relationship("Game", back_populates="rounds")
 
 # Create all tables

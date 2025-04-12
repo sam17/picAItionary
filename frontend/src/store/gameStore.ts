@@ -28,6 +28,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentGameId: null,
   currentRoundNumber: 1,
   isLoading: false,
+  wittyResponse: null,
 
   startGame: async (maxAttempts) => {
     try {
@@ -236,7 +237,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           gamePhase: 'show-result',
           selectedGuess: guessIndex,
           currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
-          selectedPhraseIndex: currentSelectedPhraseIndex // Preserve the index
+          selectedPhraseIndex: currentSelectedPhraseIndex, // Preserve the index
+          wittyResponse: data.witty_response || null
         };
       });
     })
@@ -280,7 +282,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           gamePhase: 'show-result',
           selectedGuess: guessIndex,
           currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
-          selectedPhraseIndex: currentSelectedPhraseIndex // Preserve the index
+          selectedPhraseIndex: currentSelectedPhraseIndex, // Preserve the index
+          wittyResponse: null
         };
       });
     });

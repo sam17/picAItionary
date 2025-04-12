@@ -51,6 +51,7 @@ function GameComponent() {
     startGuessing,
     continueToNextRound,
     isLoading,
+    wittyResponse,
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(3);
@@ -207,9 +208,14 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-[800px] text-center">
-          <h2 className="text-2xl font-bold mb-8">
+          <h2 className="text-2xl font-bold mb-4">
             {message}
           </h2>
+          {wittyResponse && (
+            <p className="text-lg text-gray-600 mb-8 italic">
+              "{wittyResponse}"
+            </p>
+          )}
           <div className="grid grid-cols-4 gap-6 mb-6 pt-4">
             {phrases.map((phrase, index) => (
               <div

@@ -26,6 +26,7 @@ export interface GameState {
   currentGameId: number | null;
   currentRoundNumber: number;
   isLoading: boolean;
+  wittyResponse: string | null;
 }
 
 export interface GameStore extends GameState {
@@ -43,6 +44,7 @@ export interface GameStore extends GameState {
   currentGameId: number | null;
   currentRoundNumber: number;
   isLoading: boolean;
+  wittyResponse: string | null;
   startGame: (maxAttempts: number) => Promise<void>;
   startDrawing: () => void;
   makeGuess: (correct: boolean, guessIndex: number) => void;
