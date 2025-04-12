@@ -325,7 +325,8 @@ async def get_games(db: Session = Depends(get_db)):
                         "player_guess": round.player_guess,
                         "is_correct": round.is_correct,
                         "created_at": round.created_at,
-                        "image_data": round.image_data
+                        "image_data": round.image_data,
+                        "witty_response": round.witty_response
                     }
                     for round in game.rounds
                 ]
