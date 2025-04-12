@@ -238,7 +238,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           selectedGuess: guessIndex,
           currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
           selectedPhraseIndex: currentSelectedPhraseIndex, // Preserve the index
-          wittyResponse: data.witty_response || null
+          wittyResponse: data.witty_response
         };
       });
     })

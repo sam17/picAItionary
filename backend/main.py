@@ -249,7 +249,8 @@ async def save_game_round(
             ai_guess=request.ai_guess,
             player_guess=request.player_guess,
             is_correct=request.is_correct,
-            image_data=request.image_data
+            image_data=request.image_data,
+            all_options=request.all_options
         )
 
         game_round = GameRound(
@@ -294,7 +295,8 @@ async def save_game_round(
                 "id": game_round.id,
                 "round_number": game_round.round_number,
                 "total_rounds": game.total_rounds,
-                "current_score": game.final_score
+                "current_score": game.final_score,
+                "witty_response": witty_response.get("message") if witty_response["success"] else None
             }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
