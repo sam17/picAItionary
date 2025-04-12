@@ -35,13 +35,17 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
 
 
         default_prompt = (
-            "This is a drawing from a word-guessing game.\n"
-            "The drawing represents one of these options:\n"
+            "You are an AI playing a word-guessing game.\n"
+            "You are playing against a human. Human is going to try to fool you.\n"
+            "Human gets 4 options to draw AND the one they have to draw.\n"
+            "You will get 4 options AND the image of the drawing.\n"
+            "The drawing represents one of the 4 options:\n"
             "0: Option A\n"
             "1: Option B\n"
             "2: Option C\n"
             "3: Option D\n"
             "Please respond with just the number (0-3) of your choice.\n"
+            "Dont get fooled by the human, they are trying to trick you!\n"
             "Respond with only the number, nothing else."
         )
         
