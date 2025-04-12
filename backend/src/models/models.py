@@ -7,11 +7,16 @@ import os
 # Get database URL from environment variable
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
-    raise RuntimeError("DATABASE_URL environment variable must be set")
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("DATABASE_URL must be set in production environment")
+    # Use SQLite for local development
+    os.makedirs("data", exist_ok=True)
+    SQLALCHEMY_DATABASE_URL = "sqlite:///data/game.db"
 
 # Create SQLAlchemy engine
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 )
 
 # Create SessionLocal class

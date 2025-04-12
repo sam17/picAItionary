@@ -26,7 +26,11 @@ target_metadata = Base.metadata
 # Get the database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL environment variable must be set")
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("DATABASE_URL must be set in production environment")
+    # Use SQLite for local development
+    os.makedirs("data", exist_ok=True)
+    DATABASE_URL = "sqlite:///data/game.db"
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
