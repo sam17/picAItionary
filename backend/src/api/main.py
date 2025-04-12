@@ -265,7 +265,8 @@ async def save_game_round(
             player_guess=request.player_guess,
             player_guess_index=request.player_guess_index,
             is_correct=request.is_correct,
-            witty_response=witty_response.get("message") if witty_response["success"] else None
+            witty_response=witty_response.get("message") if witty_response["success"] else None,
+            ai_explanation=witty_response.get("explanation") if witty_response["success"] else None
         )
         db.add(game_round)
         db.commit()
@@ -296,7 +297,8 @@ async def save_game_round(
                 "round_number": game_round.round_number,
                 "total_rounds": game.total_rounds,
                 "current_score": game.final_score,
-                "witty_response": witty_response.get("message") if witty_response["success"] else None
+                "witty_response": witty_response.get("message") if witty_response["success"] else None,
+                "ai_explanation": witty_response.get("explanation") if witty_response["success"] else None
             }
     except Exception as e:
         logger.error(f"Error saving game round: {str(e)}")
@@ -328,7 +330,8 @@ async def get_games(db: Session = Depends(get_db)):
                         "is_correct": round.is_correct,
                         "created_at": round.created_at,
                         "image_data": round.image_data,
-                        "witty_response": round.witty_response
+                        "witty_response": round.witty_response,
+                        "ai_explanation": round.ai_explanation
                     }
                     for round in game.rounds
                 ]

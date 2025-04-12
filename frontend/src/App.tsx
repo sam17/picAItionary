@@ -53,6 +53,7 @@ function GameComponent() {
     continueToNextRound,
     isLoading,
     wittyResponse,
+    aiExplanation,
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(3);
@@ -213,9 +214,20 @@ function GameComponent() {
             {message}
           </h2>
           {wittyResponse && (
-            <p className="text-lg text-gray-600 mb-8 italic">
-              "{wittyResponse}"
-            </p>
+            <div className="mb-8">
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <p className="text-lg text-blue-700 font-medium">
+                  "{wittyResponse}"
+                </p>
+              </div>
+              {aiExplanation && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium text-gray-800">AI's Analysis:</span> {aiExplanation}
+                  </p>
+                </div>
+              )}
+            </div>
           )}
           <div className="grid grid-cols-4 gap-6 mb-6 pt-4">
             {phrases.map((phrase, index) => (

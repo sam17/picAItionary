@@ -45,6 +45,7 @@ class GameRound(Base):
     is_correct = Column(Boolean)  # Whether the player's guess was correct
     created_at = Column(DateTime, default=datetime.utcnow)
     witty_response = Column(String, nullable=True)  # Witty response from AI about the round outcome
+    ai_explanation = Column(String, nullable=True)  # AI's explanation for its response
     game = relationship("Game", back_populates="rounds")
 
 # Create all tables

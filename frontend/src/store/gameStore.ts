@@ -29,6 +29,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentRoundNumber: 1,
   isLoading: false,
   wittyResponse: null,
+  aiExplanation: null,
 
   startGame: async (maxAttempts) => {
     try {
@@ -238,7 +239,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           selectedGuess: guessIndex,
           currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
           selectedPhraseIndex: currentSelectedPhraseIndex, // Preserve the index
-          wittyResponse: data.witty_response
+          wittyResponse: data.witty_response,
+          aiExplanation: data.ai_explanation
         };
       });
     })
@@ -283,7 +285,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           selectedGuess: guessIndex,
           currentCorrectPhrase: state.phrases[currentSelectedPhraseIndex],
           selectedPhraseIndex: currentSelectedPhraseIndex, // Preserve the index
-          wittyResponse: null
+          wittyResponse: null,
+          aiExplanation: null
         };
       });
     });
@@ -350,6 +353,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentCorrectPhrase: null,
         currentGameId: null,
         currentRoundNumber: 1,
+        wittyResponse: null,
+        aiExplanation: null
       }));
     } catch (error) {
       console.error('Error ending game:', error);
@@ -374,6 +379,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     currentCorrectPhrase: null,
     currentGameId: null,
     currentRoundNumber: 1,
+    wittyResponse: null,
+    aiExplanation: null
   })),
 
   setIsDrawingPhase: (isDrawing: boolean) => set(() => ({

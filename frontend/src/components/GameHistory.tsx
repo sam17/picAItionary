@@ -15,6 +15,7 @@ interface GameRound {
   created_at: string;
   image_data: string;
   witty_response: string | null;
+  ai_explanation: string | null;
 }
 
 interface Game {
@@ -241,10 +242,18 @@ export const GameHistory: React.FC = () => {
                                 {round.player_guess}
                               </p>
                               {round.witty_response && (
-                                <p className="mt-2 italic text-gray-600">
-                                  <span className="font-medium">AI's comment:</span>{' '}
-                                  "{round.witty_response}"
-                                </p>
+                                <div className="space-y-2">
+                                  <p>
+                                    <span className="font-medium">AI's comment:</span>{' '}
+                                    {round.witty_response}
+                                  </p>
+                                  {round.ai_explanation && (
+                                    <p>
+                                      <span className="font-medium">AI's explanation:</span>{' '}
+                                      {round.ai_explanation}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
