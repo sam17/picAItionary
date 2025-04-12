@@ -1,17 +1,17 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from image_analysis import analyze_drawing, generate_witty_response
+from ..services.image_analysis import analyze_drawing, generate_witty_response
 import os
 from dotenv import load_dotenv
 import csv
 import random
 import logging
 from sqlalchemy.orm import Session
-from models import get_db, Game, GameRound
-from typing import List
+from ..models.models import get_db, Game, GameRound
+from typing import List, Optional, Union
 import json
-from security import verify_api_key, verify_origin, ALLOWED_ORIGINS
+from ..core.security import verify_api_key, verify_origin, ALLOWED_ORIGINS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -78,7 +78,7 @@ def load_clues():
 
 class ImageAnalysisRequest(BaseModel):
     image_data: str
-    prompt: str | None = None
+    prompt: Optional[str] = None
 
 class GameRoundRequest(BaseModel):
     game_id: int
@@ -88,9 +88,9 @@ class GameRoundRequest(BaseModel):
     drawer_choice: str
     drawer_choice_index: int
     ai_guess: str
-    ai_guess_index: int | None
+    ai_guess_index: Optional[int]
     player_guess: str
-    player_guess_index: int | None
+    player_guess_index: Optional[int]
     is_correct: bool
 
 class GameRequest(BaseModel):
@@ -102,7 +102,7 @@ class WittyResponseTestRequest(BaseModel):
     player_guess: str
     is_correct: bool
     image_data: str
-    all_options: list[str]
+    all_options: List[str]
 
 @app.get("/")
 async def root():

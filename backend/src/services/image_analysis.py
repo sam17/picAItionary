@@ -2,7 +2,7 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import base64
-from typing import Optional
+from typing import Optional, List
 
 # Load environment variables
 load_dotenv()
@@ -110,7 +110,7 @@ def generate_witty_response(
     player_guess: str,
     is_correct: bool,
     image_data: str,
-    all_options: list[str]
+    all_options: List[str]
 ) -> dict:
     """
     Generate a witty response based on the game outcome.
