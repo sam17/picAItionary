@@ -23,10 +23,10 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
-# Get the database URL from environment variable, fallback to SQLite for local development
+# Get the database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL and os.getenv("ENVIRONMENT") == "production":
-    raise RuntimeError("DATABASE_URL environment variable must be set in production")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable must be set")
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -46,7 +46,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = DATABASE_URL if DATABASE_URL else config.get_main_option("sqlalchemy.url")
+    url = DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,8 +66,7 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    if DATABASE_URL:
-        configuration["sqlalchemy.url"] = DATABASE_URL
+    configuration["sqlalchemy.url"] = DATABASE_URL
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
