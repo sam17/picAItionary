@@ -4,8 +4,14 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
 
-# Get database URL from environment variable, fallback to SQLite for local development
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/game.db")
+# Get database URL from environment variable
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("DATABASE_URL must be set in production environment")
+    # Use SQLite for local development
+    os.makedirs("data", exist_ok=True)
+    SQLALCHEMY_DATABASE_URL = "sqlite:///data/game.db"
 
 # Create SQLAlchemy engine
 engine = create_engine(
