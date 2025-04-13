@@ -41,6 +41,7 @@ interface GameRound {
   witty_response: string | null;
   ai_guess_index: number | null;
   drawer_choice_index: number;
+  ai_model: string;
 }
 
 interface Game {
@@ -120,7 +121,15 @@ export const GameAnalytics: React.FC = () => {
     });
   };
 
-  const aiCorrectData = allRounds.map(round => 
+  // Separate rounds by AI model
+  const gpt4oMiniRounds = allRounds.filter(round => round.ai_model === 'gpt-4o-mini');
+  const gpt4oRounds = allRounds.filter(round => round.ai_model === 'gpt-4o');
+
+  const gpt4oMiniCorrectData = gpt4oMiniRounds.map(round => 
+    round.ai_guess_index === round.drawer_choice_index ? 1 : 0
+  ) as (0 | 1)[];
+
+  const gpt4oCorrectData = gpt4oRounds.map(round => 
     round.ai_guess_index === round.drawer_choice_index ? 1 : 0
   ) as (0 | 1)[];
 
@@ -128,17 +137,25 @@ export const GameAnalytics: React.FC = () => {
     round.is_correct ? 1 : 0
   ) as (0 | 1)[];
 
-  const aiCumulativeData = calculateCumulativePerformance(aiCorrectData);
+  const gpt4oMiniCumulativeData = calculateCumulativePerformance(gpt4oMiniCorrectData);
+  const gpt4oCumulativeData = calculateCumulativePerformance(gpt4oCorrectData);
   const playerCumulativeData = calculateCumulativePerformance(playerCorrectData);
 
   const data = {
     labels: allRounds.map((_, index) => `Round ${index + 1}`),
     datasets: [
       {
-        label: 'AI Performance',
-        data: aiCumulativeData,
+        label: 'GPT-4o-mini Performance',
+        data: gpt4oMiniCumulativeData,
         borderColor: 'rgb(255, 99, 132)',
         backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        tension: 0.1,
+      },
+      {
+        label: 'GPT-4o Performance',
+        data: gpt4oCumulativeData,
+        borderColor: 'rgb(255, 159, 64)',
+        backgroundColor: 'rgba(255, 159, 64, 0.5)',
         tension: 0.1,
       },
       {
@@ -188,9 +205,12 @@ export const GameAnalytics: React.FC = () => {
 
   // Calculate final statistics
   const totalRounds = allRounds.length;
-  const aiCorrectCount = aiCorrectData.reduce<number>((a, b) => a + b, 0);
+  const gpt4oMiniCorrectCount = gpt4oMiniCorrectData.reduce<number>((a, b) => a + b, 0);
+  const gpt4oCorrectCount = gpt4oCorrectData.reduce<number>((a, b) => a + b, 0);
   const playerCorrectCount = playerCorrectData.reduce<number>((a, b) => a + b, 0);
-  const aiWinRate = ((aiCorrectCount / totalRounds) * 100).toFixed(1);
+  
+  const gpt4oMiniWinRate = ((gpt4oMiniCorrectCount / gpt4oMiniRounds.length) * 100).toFixed(1);
+  const gpt4oWinRate = ((gpt4oCorrectCount / gpt4oRounds.length) * 100).toFixed(1);
   const playerWinRate = ((playerCorrectCount / totalRounds) * 100).toFixed(1);
 
   return (
@@ -200,11 +220,16 @@ export const GameAnalytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold mb-6">Game Analytics</h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">AI Performance</h3>
-              <p className="text-2xl font-bold text-blue-600">{aiWinRate}%</p>
-              <p className="text-gray-600">Win Rate ({aiCorrectCount}/{totalRounds} rounds)</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-red-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">GPT-4o-mini Performance</h3>
+              <p className="text-2xl font-bold text-red-600">{gpt4oMiniWinRate}%</p>
+              <p className="text-gray-600">Win Rate ({gpt4oMiniCorrectCount}/{gpt4oMiniRounds.length} rounds)</p>
+            </div>
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">GPT-4o Performance</h3>
+              <p className="text-2xl font-bold text-orange-600">{gpt4oWinRate}%</p>
+              <p className="text-gray-600">Win Rate ({gpt4oCorrectCount}/{gpt4oRounds.length} rounds)</p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-2">Player Performance</h3>

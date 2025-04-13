@@ -55,13 +55,20 @@ def verify_chat_context(expected_messages: int) -> bool:
     return actual_messages == expected_messages
 
 
-def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
+def analyze_drawing(
+    image_data: str, 
+    prompt: Optional[str] = None,
+    game_id: int = 1,
+    round_number: int = 1
+) -> dict:
     """
     Analyze a drawing using OpenAI's GPT-4 Vision model.
     
     Args:
         image_data: Base64 encoded image data
         prompt: Custom prompt that includes numbered options and asks for index
+        game_id: ID of the current game
+        round_number: Current round number in the game
         
     Returns:
         dict: Analysis results including the index and confidence
@@ -123,9 +130,15 @@ def analyze_drawing(image_data: str, prompt: Optional[str] = None) -> dict:
             f"(including {len(conversation_history)} from history)"
         )
         
+        # Alternate between models based on game and round numbers
+        # This ensures consistent alternation across games
+        total_rounds = (game_id - 1) * 10 + round_number  # Assuming max 10 rounds per game
+        model = "gpt-4o" if total_rounds % 2 == 0 else "gpt-4o-mini"
+        logger.info(f"Using model: {model} for game {game_id}, round {round_number}")
+        
         # Call OpenAI API with vision model
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=messages
         )
         
@@ -193,116 +206,47 @@ def generate_witty_response(
     all_options: List[str]
 ) -> dict:
     """
-    Generate a witty response based on the game outcome.
-    
-    Args:
-        drawer_choice: The word the drawer chose
-        ai_guess: The word AI guessed
-        player_guess: The word the player guessed
-        is_correct: Whether the player's guess was correct
-        image_data: Base64 encoded image data
-        all_options: List of all possible options in the game
-        
-    Returns:
-        dict: Response containing the witty message
+    Generate a witty response about the round outcome.
     """
     try:
-        # Log current conversation state
-        logger.info(
-            f"Starting generate_witty_response with {len(conversation_history)} "
-            "previous messages"
-        )
-        
-        # Decode base64 image
-        image_bytes = base64.b64decode(image_data.split(',')[1])
-        
-        # Format options for the prompt
-        options_text = "\n".join(
-            [f"{i}: {option}" for i, option in enumerate(all_options)]
-        )
-        
-        # Create a prompt that includes the game outcome and asks for a witty response
+        # Prepare the prompt for the AI
         prompt = (
-            f"I am an AI playing a word-guessing game. Here's what happened:\n"
-            f"Available options were:\n{options_text}\n"
-            f"- The word to draw was: {drawer_choice}\n"
-            f"- I guessed: {ai_guess}\n"
-            f"- The player guessed: {player_guess}\n"
-            f"- The player was {'correct' if is_correct else 'incorrect'}\n\n"
-            f"Please provide a witty, humorous, and friendly one-line response "
-            f"from my perspective. Analyze the image and comment on how well "
-            f"the drawing represented the word. Be playful and good-natured, "
-            f"whether I won or lost.\n"
-            f"Format your response as: WITTY_RESPONSE|EXPLANATION\n"
-            f"Keep the witty response under 100 characters.\n"
-            f"Keep the explanation under 100 characters."
+            f"You are playing a word-guessing game. Here's what happened:\n"
+            f"Correct word: {drawer_choice}\n"
+            f"AI guessed: {ai_guess}\n"
+            f"Player guessed: {player_guess}\n"
+            f"Player was {'correct' if is_correct else 'incorrect'}\n"
+            f"Available options were: {', '.join(all_options)}\n\n"
+            f"Please provide a witty, humorous response about this outcome. "
+            f"Keep it light-hearted and fun. Also explain why you made your guess."
         )
-        
-        # Prepare messages with conversation history
-        messages = conversation_history.copy()
-        user_message = {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": prompt
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": (
-                            f"data:image/png;base64,"
-                            f"{base64.b64encode(image_bytes).decode('utf-8')}"
-                        )
-                    }
-                }
-            ]
-        }
-        messages.append(user_message)
-        
-        # Log the message being sent
-        logger.info(
-            f"Sending message to AI with {len(messages)} total messages "
-            f"(including {len(conversation_history)} from history)"
-        )
-        
-        # Call OpenAI API with vision model
+
+        # Use the same model that was used for the guess
+        model = "gpt-4o" if is_correct else "gpt-4o-mini"
+
+        # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a witty game commentator."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=150
         )
-        
-        # Log AI's response
-        ai_response = response.choices[0].message.content.strip()
-        logger.info(f"AI Response: {ai_response}")
-        
-        # Split response into witty response and explanation
-        parts = ai_response.split("|")
-        witty_message = parts[0].strip()
-        explanation = parts[1].strip() if len(parts) > 1 else ""
-        
-        logger.info(f"Witty Response: {witty_message}")
-        logger.info(f"AI Explanation: {explanation}")
-        
-        # Add AI's response to conversation history
-        assistant_message = {
-            "role": "assistant",
-            "content": ai_response
-        }
-        conversation_history.extend([user_message, assistant_message])
-        
-        # Log the updated conversation state
-        logger.info(
-            f"Updated conversation history now has {len(conversation_history)} "
-            "messages"
-        )
-        
+
+        # Extract the response
+        witty_response = response.choices[0].message.content
+
+        # Split the response into the witty part and explanation
+        parts = witty_response.split("\n\n", 1)
+        message = parts[0]
+        explanation = parts[1] if len(parts) > 1 else None
+
         return {
             "success": True,
-            "message": witty_message,
+            "message": message,
             "explanation": explanation
         }
-        
     except Exception as e:
         logger.error(f"Error in generate_witty_response: {str(e)}")
         return {

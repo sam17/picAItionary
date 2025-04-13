@@ -109,6 +109,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         headers,
         body: JSON.stringify({
           image_data: state.currentDrawing,
+          game_id: state.currentGameId,
+          round_number: state.currentRoundNumber,
           prompt: `This is a drawing from a word-guessing game. The drawing represents one of these numbered options:\n${phrasesWithIndices.join('\n')}\nPlease respond with just the number (0-${state.phrases.length - 1}) of the option you think is being drawn. Respond with only the number, nothing else.`
         }),
       });
@@ -203,6 +205,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         player_guess: playerGuess,
         player_guess_index: guessIndex,
         is_correct: correct,
+        ai_model: state.currentRoundNumber % 3 === 0 ? "o3-mini" : 
+                 state.currentRoundNumber % 3 === 1 ? "gpt-4o-mini" : "gpt-4o"
       }),
     })
     .then(response => {

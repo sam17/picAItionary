@@ -46,6 +46,7 @@ class GameRound(Base):
     drawer_choice_index = Column(Integer)  # Index of the word the drawer chose
     ai_guess = Column(String)  # The word AI guessed
     ai_guess_index = Column(Integer, nullable=True)  # Index of the word AI guessed
+    ai_model = Column(String, nullable=True)  # Which AI model was used (gpt-4o-mini or gpt-4o)
     player_guess = Column(String)  # The word the second player guessed
     player_guess_index = Column(Integer, nullable=True)  # Index of the word the player guessed
     is_correct = Column(Boolean)  # Whether the player's guess was correct

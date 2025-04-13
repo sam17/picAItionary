@@ -79,6 +79,8 @@ def load_clues():
 class ImageAnalysisRequest(BaseModel):
     image_data: str
     prompt: Optional[str] = None
+    game_id: int
+    round_number: int
 
 class GameRoundRequest(BaseModel):
     game_id: int
@@ -92,6 +94,7 @@ class GameRoundRequest(BaseModel):
     player_guess: str
     player_guess_index: Optional[int]
     is_correct: bool
+    ai_model: str
 
 class GameRequest(BaseModel):
     total_rounds: int
@@ -164,7 +167,12 @@ async def analyze_drawing_endpoint(
                 options.append(option)
                 logger.info(f"  {line.strip()}")
     
-    result = analyze_drawing(request.image_data, request.prompt)
+    result = analyze_drawing(
+        request.image_data, 
+        request.prompt,
+        game_id=request.game_id,
+        round_number=request.round_number
+    )
     
     if not result["success"]:
         logger.error(f"Error analyzing drawing: {result['error']}")
@@ -262,6 +270,7 @@ async def save_game_round(
             drawer_choice_index=request.drawer_choice_index,
             ai_guess=request.ai_guess,
             ai_guess_index=request.ai_guess_index,
+            ai_model=request.ai_model,
             player_guess=request.player_guess,
             player_guess_index=request.player_guess_index,
             is_correct=request.is_correct,
@@ -326,6 +335,7 @@ async def get_games(db: Session = Depends(get_db)):
                         "drawer_choice_index": round.drawer_choice_index,
                         "ai_guess": round.ai_guess,
                         "ai_guess_index": round.ai_guess_index,
+                        "ai_model": round.ai_model,
                         "player_guess": round.player_guess,
                         "is_correct": round.is_correct,
                         "created_at": round.created_at,

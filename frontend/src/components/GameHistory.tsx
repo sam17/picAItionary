@@ -16,6 +16,7 @@ interface GameRound {
   image_data: string;
   witty_response: string | null;
   ai_explanation: string | null;
+  ai_model: string;
 }
 
 interface Game {
@@ -185,7 +186,12 @@ export const GameHistory: React.FC = () => {
                   {game.rounds.map((round) => (
                     <div key={round.id} className="border-t pt-6">
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-lg font-semibold">Round {round.round_number}</h3>
+                        <div>
+                          <h3 className="text-lg font-semibold">Round {round.round_number}</h3>
+                          <p className="text-sm text-gray-500">
+                            AI Model: {round.ai_model}
+                          </p>
+                        </div>
                         <div className={`px-4 py-2 rounded-full ${
                           round.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
