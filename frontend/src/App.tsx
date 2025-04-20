@@ -164,7 +164,7 @@ function GameComponent() {
           <div className="mb-8">
             <div className="flex flex-col items-center">
               <Dice roll={diceRoll!} modifier={roundModifier!} />
-              <div className="text-lg font-semibold text-gray-700 animate-[fade-in_0.5s_ease-out_0.7s_both]">{roundModifier}</div>
+              <div className="text-lg font-semibold text-green-600 animate-[fade-in_0.5s_ease-out_0.7s_both]">{roundModifier}</div>
             </div>
           </div>
           <button
