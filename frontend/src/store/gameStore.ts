@@ -38,10 +38,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isStraightLinesOnly: false,
 
   // Helper function to roll dice and get modifier
-  rollDiceAndGetModifier: (): { roll: number; modifier: string; modifierType: 'non-dominant' | 'speed' | 'bold' | 'straight' | 'continuous' } => {
-    const roll = Math.floor(Math.random() * 5) + 1; // Now 5 options
+  rollDiceAndGetModifier: (): { roll: number; modifier: string; modifierType: 'non-dominant' | 'speed' | 'bold' | 'straight' | 'continuous' | 'lucky' } => {
+    const roll = Math.floor(Math.random() * 6) + 1; // Now 6 options
     let modifier = '';
-    let modifierType: 'non-dominant' | 'speed' | 'bold' | 'straight' | 'continuous' = 'non-dominant';
+    let modifierType: 'non-dominant' | 'speed' | 'bold' | 'straight' | 'continuous' | 'lucky' = 'non-dominant';
 
     switch (roll) {
       case 1:
@@ -63,6 +63,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 5:
         modifier = 'Continuous drawing - can\'t pick up the pen!';
         modifierType = 'continuous';
+        break;
+      case 6:
+        modifier = 'Lucky round - draw normally!';
+        modifierType = 'lucky';
         break;
     }
 
