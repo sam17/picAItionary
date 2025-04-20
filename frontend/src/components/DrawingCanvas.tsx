@@ -16,7 +16,20 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const [color, setColor] = useState('#000000');
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const { currentDrawing, setCurrentDrawing } = useGameStore();
+  const { currentDrawing, setCurrentDrawing, currentModifierType, switchToGuessing } = useGameStore();
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
+  const [hasDrawn, setHasDrawn] = useState(false);
+
+  // Apply modifier effects
+  useEffect(() => {
+    if (currentModifierType === 'bold') {
+      setThickness(20); // Maximum pen size for bold drawing
+    } else if (currentModifierType === 'straight') {
+      setThickness(4); // Medium thickness for straight lines
+    } else {
+      setThickness(2); // Default thickness
+    }
+  }, [currentModifierType]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -99,29 +112,89 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     context.beginPath();
     context.moveTo(x, y);
     context.strokeStyle = isEraserMode ? 'white' : color;
-    context.lineWidth = Math.max(thickness, canvasRef.current?.width ? canvasRef.current.width / 250 : 2) * (isEraserMode ? 2 : 1);
+    context.lineWidth = thickness;
     setIsDrawing(true);
-  }, [isEnabled, getCoordinates, isEraserMode, thickness, color]);
+    setLastPoint({ x, y });
+  }, [isEnabled, getCoordinates, isEraserMode, color, thickness]);
 
   const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
     event.preventDefault();
+    
     const { x, y } = getCoordinates(event);
-    contextRef.current?.lineTo(x, y);
-    contextRef.current?.stroke();
-  }, [isDrawing, isEnabled, getCoordinates]);
+    const context = contextRef.current;
+    if (!context) return;
+
+    if (currentModifierType === 'straight' && lastPoint) {
+      const dx = Math.abs(x - lastPoint.x);
+      const dy = Math.abs(y - lastPoint.y);
+      
+      // Only update if we've moved enough
+      if (dx > 30 || dy > 30) {
+        // Clear the current path
+        context.beginPath();
+        
+        // Draw the line
+        if (dx > dy) {
+          // Horizontal line
+          context.moveTo(lastPoint.x, lastPoint.y);
+          context.lineTo(x, lastPoint.y);
+          context.stroke();
+          // Update last point without state
+          lastPoint.x = x;
+        } else {
+          // Vertical line
+          context.moveTo(lastPoint.x, lastPoint.y);
+          context.lineTo(lastPoint.x, y);
+          context.stroke();
+          // Update last point without state
+          lastPoint.y = y;
+        }
+      }
+    } else {
+      context.lineTo(x, y);
+      context.stroke();
+      setLastPoint({ x, y });
+    }
+
+    setHasDrawn(true);
+  }, [isDrawing, isEnabled, getCoordinates, currentModifierType]);
 
   const stopDrawing = useCallback(() => {
     if (!isEnabled) return;
     contextRef.current?.closePath();
     setIsDrawing(false);
+    setLastPoint(null);
     
     // Save the current drawing
     const canvas = canvasRef.current;
     if (canvas) {
       setCurrentDrawing(canvas.toDataURL());
     }
-  }, [isEnabled, setCurrentDrawing]);
+
+    // If continuous drawing modifier is active and we were actually drawing, submit the drawing
+    if (currentModifierType === 'continuous' && hasDrawn) {
+      switchToGuessing();
+    }
+  }, [isEnabled, setCurrentDrawing, currentModifierType, switchToGuessing, hasDrawn]);
+
+  // Reset hasDrawn when modifier changes
+  useEffect(() => {
+    setHasDrawn(false);
+  }, [currentModifierType]);
+
+  // Add a warning message for continuous drawing
+  useEffect(() => {
+    if (currentModifierType === 'continuous' && isDrawing) {
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          stopDrawing();
+        }
+      };
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [currentModifierType, isDrawing, stopDrawing]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -137,7 +210,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
 
     return () => {
       // Remove touch event listeners
@@ -150,7 +222,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       canvas.removeEventListener('mousedown', startDrawing);
       canvas.removeEventListener('mousemove', draw);
       canvas.removeEventListener('mouseup', stopDrawing);
-      canvas.removeEventListener('mouseout', stopDrawing);
     };
   }, [startDrawing, draw, stopDrawing]);
 
@@ -185,7 +256,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   }, [thickness, isEraserMode]);
 
   return (
-    <div className="w-full flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4">
+      {currentModifierType === 'continuous' && isDrawing && (
+        <div className="text-red-500 font-medium">
+          Alert: Lifting the pen will submit your drawing!
+        </div>
+      )}
       {isEnabled && (
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-[500px]">
           <div className="flex gap-2 bg-gray-100 p-2 rounded-lg shadow-sm">
@@ -242,7 +318,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
               value={thickness}
               onChange={(e) => setThickness(Number(e.target.value))}
               className="w-full sm:w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:hover:bg-blue-600"
-              disabled={!isEnabled}
+              disabled={!isEnabled || currentModifierType === 'bold'}
             />
             <span className="text-sm font-medium text-gray-600 w-6 text-center">{thickness}</span>
           </div>
