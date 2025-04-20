@@ -336,7 +336,7 @@ function GameComponent() {
               <TimerIcon className="w-5 h-5" />
               <Timer 
                 key={`${gamePhase}-${isDrawingPhase}`} 
-                duration={isDrawingPhase ? 60 : 60} 
+                duration={isDrawingPhase ? 30 : 60} 
                 onTimeUp={handleTimeUp} 
               />
             </div>
