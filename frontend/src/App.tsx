@@ -5,28 +5,32 @@ import { DrawingCanvas } from './components/DrawingCanvas';
 import { GameHistory } from './components/GameHistory';
 import { GameAnalytics } from './components/GameAnalytics';
 import { GameTitle } from './components/GameTitle';
+import { Dice } from './components/Dice';
 import { useGameStore } from './store/gameStore';
 import { Pencil, Timer as TimerIcon, Smartphone, Bot, History, BarChart2, ArrowLeft } from 'lucide-react';
 
 // Add the animation keyframes at the top of the file
-const botAnimation = `
-  @keyframes float {
-    0% { transform: translateY(0px) rotate(0deg); }
-    25% { transform: translateY(-8px) rotate(5deg); }
-    75% { transform: translateY(-8px) rotate(-5deg); }
-    100% { transform: translateY(0px) rotate(0deg); }
+const diceAnimation = `
+  @keyframes roll {
+    0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+    50% { transform: rotate(360deg) scale(1.2); opacity: 1; }
+    100% { transform: rotate(720deg) scale(1); }
   }
 
-  @keyframes scale {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.25); }
-    100% { transform: scale(1); }
+  @keyframes roll-shadow {
+    0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+    50% { transform: rotate(-360deg) scale(1.2); opacity: 0.2; }
+    100% { transform: rotate(-720deg) scale(1); }
   }
 
-  @keyframes scale-down {
-    0% { transform: scale(1); }
-    50% { transform: scale(0.75); }
-    100% { transform: scale(1); }
+  @keyframes pop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes fade-in {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 `;
 
@@ -54,6 +58,9 @@ function GameComponent() {
     isLoading,
     wittyResponse,
     aiExplanation,
+    diceRoll,
+    roundModifier,
+    rollDiceAndGetModifier,
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(3);
@@ -63,7 +70,7 @@ function GameComponent() {
   // Add useEffect to inject the animation styles
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = botAnimation;
+    style.textContent = diceAnimation;
     document.head.appendChild(style);
     return () => {
       document.head.removeChild(style);
@@ -156,12 +163,18 @@ function GameComponent() {
           <GameTitle />
           <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
           <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the drawer!</h2>
+          <div className="mb-4">
+            <div className="flex flex-col items-center">
+              <Dice roll={diceRoll!} modifier={roundModifier!} />
+              <div className="text-lg font-semibold text-gray-700 animate-[fade-in_0.5s_ease-out_0.7s_both]">{roundModifier}</div>
+            </div>
+          </div>
           <button
             type="button"
             onClick={startDrawing}
             className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
           >
-            I'm the drawer
+            Start Drawing
           </button>
         </div>
       </div>

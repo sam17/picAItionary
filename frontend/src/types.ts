@@ -28,6 +28,8 @@ export interface GameState {
   isLoading: boolean;
   wittyResponse: string | null;
   aiExplanation: string | null;
+  diceRoll: number | null;
+  roundModifier: string | null;
 }
 
 export interface GameStore extends GameState {
@@ -60,4 +62,5 @@ export interface GameStore extends GameState {
   setIsDrawingPhase: (isDrawing: boolean) => void;
   setAiGuess: (guess: number | null) => void;
   endGame: () => Promise<void>;
+  rollDiceAndGetModifier: () => { roll: number; modifier: string };
 }

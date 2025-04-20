@@ -30,6 +30,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isLoading: false,
   wittyResponse: null,
   aiExplanation: null,
+  diceRoll: null,
+  roundModifier: null,
+
+  // Helper function to roll dice and get modifier
+  rollDiceAndGetModifier: () => {
+    const roll = Math.floor(Math.random() * 6) + 1;
+    let modifier = '';
+    switch (roll) {
+      case 1:
+        modifier = 'Draw with your non-dominant hand';
+        break;
+      case 2:
+        modifier = 'Draw with your eyes closed';
+        break;
+      case 3:
+        modifier = 'Draw with only straight lines';
+        break;
+      case 4:
+        modifier = 'Draw with only circles';
+        break;
+      case 5:
+        modifier = 'Draw with only dots';
+        break;
+      case 6:
+        modifier = 'Draw with only triangles';
+        break;
+    }
+    return { roll, modifier };
+  },
 
   startGame: async (maxAttempts) => {
     try {
@@ -57,6 +86,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       const cluesData = await cluesResponse.json();
       
+      // Roll the dice for the first round
+      const { roll, modifier } = get().rollDiceAndGetModifier();
+      
       set(() => ({
         phrases: cluesData.clues,
         isGameStarted: true,
@@ -70,6 +102,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         selectedGuess: null,
         currentGameId: gameData.id,
         currentRoundNumber: 1,
+        diceRoll: roll,
+        roundModifier: modifier
       }));
     } catch (error) {
       console.error('Error starting game:', error);
@@ -303,6 +337,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       const data = await response.json();
       
+      // Roll the dice for the new round
+      const { roll, modifier } = get().rollDiceAndGetModifier();
+      
       set((state) => ({
         phrases: data.clues,
         selectedPhraseIndex: data.correct_index,
@@ -313,6 +350,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         selectedGuess: null,
         currentCorrectPhrase: null,
         currentRoundNumber: state.currentRoundNumber + 1,
+        diceRoll: roll,
+        roundModifier: modifier
       }));
     } catch (error) {
       console.error('Error fetching new clues:', error);
