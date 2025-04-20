@@ -160,10 +160,8 @@ function GameComponent() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md w-full max-w-[96vw] sm:w-96 text-center">
-          <GameTitle />
-          <Smartphone className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-blue-500" />
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Pass the device to the drawer!</h2>
-          <div className="mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-8">Pass the device to the drawer!</h2>
+          <div className="mb-8">
             <div className="flex flex-col items-center">
               <Dice roll={diceRoll!} modifier={roundModifier!} />
               <div className="text-lg font-semibold text-gray-700 animate-[fade-in_0.5s_ease-out_0.7s_both]">{roundModifier}</div>
