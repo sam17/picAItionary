@@ -17,16 +17,16 @@ const modifierIcons = {
 export const Dice: React.FC<DiceProps> = ({ roll, modifier }) => {
   return (
     <div className="relative w-24 h-24 mb-4">
-      <div className="absolute w-full h-full bg-white rounded-xl shadow-lg border-4 border-green-500 transform rotate-3 transition-transform duration-300 hover:rotate-6 animate-[roll_1s_ease-out]">
+      <div className="absolute w-full h-full bg-white rounded-xl shadow-lg border-4 border-pink-500 transform rotate-3 transition-transform duration-300 hover:rotate-6 animate-[roll_1s_ease-out]">
         <div className="w-full h-full p-3">
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-green-500 animate-[pop_0.3s_ease-out_0.7s_both]">
+            <div className="text-pink-500 animate-[pop_0.3s_ease-out_0.7s_both]">
               {modifierIcons[roll as keyof typeof modifierIcons]}
             </div>
           </div>
         </div>
       </div>
-      <div className="absolute w-full h-full bg-green-500/20 rounded-xl -z-10 transform -rotate-3 transition-transform duration-300 hover:-rotate-6 animate-[roll-shadow_1s_ease-out]" />
+      <div className="absolute w-full h-full bg-pink-500/20 rounded-xl -z-10 transform -rotate-3 transition-transform duration-300 hover:-rotate-6 animate-[roll-shadow_1s_ease-out]" />
     </div>
   );
 }; 
