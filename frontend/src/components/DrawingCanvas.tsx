@@ -16,8 +16,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const [color, setColor] = useState('#000000');
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const { currentDrawing, setCurrentDrawing, currentModifierType } = useGameStore();
+  const { currentDrawing, setCurrentDrawing, currentModifierType, switchToGuessing } = useGameStore();
   const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
+  const [hasDrawn, setHasDrawn] = useState(false);
 
   // Apply modifier effects
   useEffect(() => {
@@ -137,14 +138,23 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       const newX = lastPoint.x + Math.cos(snappedAngle) * distance;
       const newY = lastPoint.y + Math.sin(snappedAngle) * distance;
       
+      // For straight lines, we need to stop the current path and start a new one
+      context.stroke();
+      context.beginPath();
+      context.moveTo(lastPoint.x, lastPoint.y);
       context.lineTo(newX, newY);
+      context.stroke();
+      
+      // Update last point
       setLastPoint({ x: newX, y: newY });
     } else {
       context.lineTo(x, y);
+      context.stroke();
       setLastPoint({ x, y });
     }
-    
-    context.stroke();
+
+    // Mark that drawing has occurred
+    setHasDrawn(true);
   }, [isDrawing, isEnabled, getCoordinates, currentModifierType, lastPoint]);
 
   const stopDrawing = useCallback(() => {
@@ -158,7 +168,30 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     if (canvas) {
       setCurrentDrawing(canvas.toDataURL());
     }
-  }, [isEnabled, setCurrentDrawing]);
+
+    // If continuous drawing modifier is active and we were actually drawing, submit the drawing
+    if (currentModifierType === 'continuous' && hasDrawn) {
+      switchToGuessing();
+    }
+  }, [isEnabled, setCurrentDrawing, currentModifierType, switchToGuessing, hasDrawn]);
+
+  // Reset hasDrawn when modifier changes
+  useEffect(() => {
+    setHasDrawn(false);
+  }, [currentModifierType]);
+
+  // Add a warning message for continuous drawing
+  useEffect(() => {
+    if (currentModifierType === 'continuous' && isDrawing) {
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          stopDrawing();
+        }
+      };
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [currentModifierType, isDrawing, stopDrawing]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -174,7 +207,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
 
     return () => {
       // Remove touch event listeners
@@ -187,7 +219,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
       canvas.removeEventListener('mousedown', startDrawing);
       canvas.removeEventListener('mousemove', draw);
       canvas.removeEventListener('mouseup', stopDrawing);
-      canvas.removeEventListener('mouseout', stopDrawing);
     };
   }, [startDrawing, draw, stopDrawing]);
 
@@ -223,6 +254,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
+      {currentModifierType === 'continuous' && isDrawing && (
+        <div className="text-red-500 font-medium">
+          Alert: Lifting the pen will submit your drawing!
+        </div>
+      )}
       {isEnabled && (
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-[500px]">
           <div className="flex gap-2 bg-gray-100 p-2 rounded-lg shadow-sm">
