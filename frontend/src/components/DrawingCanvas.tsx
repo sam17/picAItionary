@@ -112,50 +112,53 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     context.beginPath();
     context.moveTo(x, y);
     context.strokeStyle = isEraserMode ? 'white' : color;
-    context.lineWidth = Math.max(thickness, canvasRef.current?.width ? canvasRef.current.width / 250 : 2) * (isEraserMode ? 2 : 1);
+    context.lineWidth = thickness;
     setIsDrawing(true);
     setLastPoint({ x, y });
-  }, [isEnabled, getCoordinates, isEraserMode, thickness, color]);
+  }, [isEnabled, getCoordinates, isEraserMode, color, thickness]);
 
   const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
     event.preventDefault();
+    
     const { x, y } = getCoordinates(event);
     const context = contextRef.current;
     if (!context) return;
 
     if (currentModifierType === 'straight' && lastPoint) {
-      // Calculate the angle between the last point and current point
-      const dx = x - lastPoint.x;
-      const dy = y - lastPoint.y;
-      const angle = Math.atan2(dy, dx);
+      const dx = Math.abs(x - lastPoint.x);
+      const dy = Math.abs(y - lastPoint.y);
       
-      // Snap to nearest 90 degrees
-      const snappedAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
-      
-      // Calculate the new point based on the snapped angle
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const newX = lastPoint.x + Math.cos(snappedAngle) * distance;
-      const newY = lastPoint.y + Math.sin(snappedAngle) * distance;
-      
-      // For straight lines, we need to stop the current path and start a new one
-      context.stroke();
-      context.beginPath();
-      context.moveTo(lastPoint.x, lastPoint.y);
-      context.lineTo(newX, newY);
-      context.stroke();
-      
-      // Update last point
-      setLastPoint({ x: newX, y: newY });
+      // Only update if we've moved enough
+      if (dx > 30 || dy > 30) {
+        // Clear the current path
+        context.beginPath();
+        
+        // Draw the line
+        if (dx > dy) {
+          // Horizontal line
+          context.moveTo(lastPoint.x, lastPoint.y);
+          context.lineTo(x, lastPoint.y);
+          context.stroke();
+          // Update last point without state
+          lastPoint.x = x;
+        } else {
+          // Vertical line
+          context.moveTo(lastPoint.x, lastPoint.y);
+          context.lineTo(lastPoint.x, y);
+          context.stroke();
+          // Update last point without state
+          lastPoint.y = y;
+        }
+      }
     } else {
       context.lineTo(x, y);
       context.stroke();
       setLastPoint({ x, y });
     }
 
-    // Mark that drawing has occurred
     setHasDrawn(true);
-  }, [isDrawing, isEnabled, getCoordinates, currentModifierType, lastPoint]);
+  }, [isDrawing, isEnabled, getCoordinates, currentModifierType]);
 
   const stopDrawing = useCallback(() => {
     if (!isEnabled) return;
