@@ -32,32 +32,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
   aiExplanation: null,
   diceRoll: null,
   roundModifier: null,
+  currentModifierType: null,
+  isSpeedRound: false,
+  isBoldDrawing: false,
+  isStraightLinesOnly: false,
 
   // Helper function to roll dice and get modifier
   rollDiceAndGetModifier: () => {
-    const roll = Math.floor(Math.random() * 6) + 1;
+    const roll = Math.floor(Math.random() * 4) + 1; // Now only 4 options
     let modifier = '';
+    let modifierType = '';
+    
     switch (roll) {
       case 1:
         modifier = 'Draw with your non-dominant hand';
+        modifierType = 'non-dominant';
         break;
       case 2:
-        modifier = 'Draw with your eyes closed';
+        modifier = 'Speed round - half the time!';
+        modifierType = 'speed';
         break;
       case 3:
-        modifier = 'Draw with only straight lines';
+        modifier = 'Bold drawing - large pen size!';
+        modifierType = 'bold';
         break;
       case 4:
-        modifier = 'Draw with only circles';
-        break;
-      case 5:
-        modifier = 'Draw with only dots';
-        break;
-      case 6:
-        modifier = 'Draw with only triangles';
+        modifier = 'Straight lines only - snap to 90 degrees!';
+        modifierType = 'straight';
         break;
     }
-    return { roll, modifier };
+    return { roll, modifier, modifierType };
   },
 
   startGame: async (maxAttempts) => {
@@ -87,7 +91,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const cluesData = await cluesResponse.json();
       
       // Roll the dice for the first round
-      const { roll, modifier } = get().rollDiceAndGetModifier();
+      const { roll, modifier, modifierType } = get().rollDiceAndGetModifier();
       
       set(() => ({
         phrases: cluesData.clues,
@@ -103,7 +107,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentGameId: gameData.id,
         currentRoundNumber: 1,
         diceRoll: roll,
-        roundModifier: modifier
+        roundModifier: modifier,
+        currentModifierType: modifierType
       }));
     } catch (error) {
       console.error('Error starting game:', error);
@@ -338,7 +343,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const data = await response.json();
       
       // Roll the dice for the new round
-      const { roll, modifier } = get().rollDiceAndGetModifier();
+      const { roll, modifier, modifierType } = get().rollDiceAndGetModifier();
       
       set((state) => ({
         phrases: data.clues,
@@ -351,7 +356,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentCorrectPhrase: null,
         currentRoundNumber: state.currentRoundNumber + 1,
         diceRoll: roll,
-        roundModifier: modifier
+        roundModifier: modifier,
+        currentModifierType: modifierType
       }));
     } catch (error) {
       console.error('Error fetching new clues:', error);

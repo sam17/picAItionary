@@ -16,7 +16,19 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   const [color, setColor] = useState('#000000');
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const { currentDrawing, setCurrentDrawing } = useGameStore();
+  const { currentDrawing, setCurrentDrawing, currentModifierType } = useGameStore();
+  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
+
+  // Apply modifier effects
+  useEffect(() => {
+    if (currentModifierType === 'bold') {
+      setThickness(20); // Maximum pen size for bold drawing
+    } else if (currentModifierType === 'straight') {
+      setThickness(4); // Medium thickness for straight lines
+    } else {
+      setThickness(2); // Default thickness
+    }
+  }, [currentModifierType]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -101,20 +113,45 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
     context.strokeStyle = isEraserMode ? 'white' : color;
     context.lineWidth = Math.max(thickness, canvasRef.current?.width ? canvasRef.current.width / 250 : 2) * (isEraserMode ? 2 : 1);
     setIsDrawing(true);
+    setLastPoint({ x, y });
   }, [isEnabled, getCoordinates, isEraserMode, thickness, color]);
 
   const draw = useCallback((event: DrawingEvent) => {
     if (!isDrawing || !isEnabled) return;
     event.preventDefault();
     const { x, y } = getCoordinates(event);
-    contextRef.current?.lineTo(x, y);
-    contextRef.current?.stroke();
-  }, [isDrawing, isEnabled, getCoordinates]);
+    const context = contextRef.current;
+    if (!context) return;
+
+    if (currentModifierType === 'straight' && lastPoint) {
+      // Calculate the angle between the last point and current point
+      const dx = x - lastPoint.x;
+      const dy = y - lastPoint.y;
+      const angle = Math.atan2(dy, dx);
+      
+      // Snap to nearest 90 degrees
+      const snappedAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+      
+      // Calculate the new point based on the snapped angle
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const newX = lastPoint.x + Math.cos(snappedAngle) * distance;
+      const newY = lastPoint.y + Math.sin(snappedAngle) * distance;
+      
+      context.lineTo(newX, newY);
+      setLastPoint({ x: newX, y: newY });
+    } else {
+      context.lineTo(x, y);
+      setLastPoint({ x, y });
+    }
+    
+    context.stroke();
+  }, [isDrawing, isEnabled, getCoordinates, currentModifierType, lastPoint]);
 
   const stopDrawing = useCallback(() => {
     if (!isEnabled) return;
     contextRef.current?.closePath();
     setIsDrawing(false);
+    setLastPoint(null);
     
     // Save the current drawing
     const canvas = canvasRef.current;
@@ -242,7 +279,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
               value={thickness}
               onChange={(e) => setThickness(Number(e.target.value))}
               className="w-full sm:w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:hover:bg-blue-600"
-              disabled={!isEnabled}
+              disabled={!isEnabled || currentModifierType === 'bold'}
             />
             <span className="text-sm font-medium text-gray-600 w-6 text-center">{thickness}</span>
           </div>
