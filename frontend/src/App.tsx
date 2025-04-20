@@ -54,6 +54,7 @@ function GameComponent() {
     isLoading,
     wittyResponse,
     aiExplanation,
+    endGame,
   } = useGameStore();
 
   const [maxRounds, setMaxRounds] = useState(3);
@@ -304,7 +305,13 @@ function GameComponent() {
               <div className="col-span-4 flex justify-center">
                 <button
                   type="button"
-                  onClick={resetGame}
+                  onClick={async () => {
+                    try {
+                      await endGame();
+                    } catch (error) {
+                      console.error('Error ending game:', error);
+                    }
+                  }}
                   className="w-1/3 bg-red-500 text-white py-4 rounded-md hover:bg-red-600 transition-colors shadow-lg mt-16"
                 >
                   Play Again

@@ -317,4 +317,5 @@ def clear_conversation_history() -> None:
     """
     global conversation_history
     logger.info("Clearing conversation history")
-    conversation_history = [] 
+    conversation_history = []
+    logger.info(f"Conversation history cleared. Current length: {len(conversation_history)}") 

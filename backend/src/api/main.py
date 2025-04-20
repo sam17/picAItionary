@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from ..services.image_analysis import analyze_drawing, generate_witty_response
+from ..services.image_analysis import analyze_drawing, generate_witty_response, clear_conversation_history
 import os
 from dotenv import load_dotenv
 import csv
@@ -103,6 +103,10 @@ class WittyResponseTestRequest(BaseModel):
     is_correct: bool
     image_data: str
     all_options: List[str]
+
+class EndGameRequest(BaseModel):
+    game_id: int
+    final_score: int
 
 @app.get("/")
 async def root():
@@ -366,6 +370,45 @@ async def test_witty_response(
         return result
     except Exception as e:
         logger.error(f"Error generating witty response: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/clear-conversation-history", dependencies=[Depends(verify_api_key)])
+async def clear_conversation_history_endpoint():
+    """
+    Clear the conversation history.
+    """
+    try:
+        logger.info("Received request to clear conversation history")
+        clear_conversation_history()
+        logger.info("Successfully cleared conversation history")
+        return {"success": True, "message": "Conversation history cleared"}
+    except Exception as e:
+        logger.error(f"Error clearing conversation history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/end-game", dependencies=[Depends(verify_api_key)])
+async def end_game(
+    request: EndGameRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    End a game and update its final score.
+    """
+    try:
+        logger.info(f"Ending game {request.game_id} with final score {request.final_score}")
+        
+        # Update the game's final score
+        game = db.query(Game).filter(Game.id == request.game_id).first()
+        if game:
+            game.final_score = request.final_score
+            db.commit()
+            logger.info(f"Game {request.game_id} ended successfully")
+            return {"success": True, "message": "Game ended successfully"}
+        else:
+            logger.error(f"Game {request.game_id} not found")
+            raise HTTPException(status_code=404, detail="Game not found")
+    except Exception as e:
+        logger.error(f"Error ending game: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

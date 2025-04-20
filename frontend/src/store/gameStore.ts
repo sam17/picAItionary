@@ -325,16 +325,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const state = get();
       if (!state.currentGameId) return;
 
-      await fetch(`${BACKEND_URL}/end-game`, {
+      console.log('Ending game and clearing conversation history...');
+
+      // First clear the conversation history
+      const clearResponse = await fetch(`${BACKEND_URL}/clear-conversation-history`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-API-Key': API_KEY
+        },
+      });
+
+      if (!clearResponse.ok) {
+        const errorData = await clearResponse.json();
+        console.error('Failed to clear conversation history:', errorData);
+        throw new Error('Failed to clear conversation history');
+      }
+
+      const clearResult = await clearResponse.json();
+      console.log('Conversation history cleared:', clearResult);
+
+      // Then end the game
+      const endGameResponse = await fetch(`${BACKEND_URL}/end-game`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY
         },
         body: JSON.stringify({
           game_id: state.currentGameId,
           final_score: state.score,
         }),
       });
+
+      if (!endGameResponse.ok) {
+        const errorData = await endGameResponse.json();
+        console.error('Failed to end game:', errorData);
+        throw new Error('Failed to end game');
+      }
+
+      console.log('Game ended successfully');
 
       set(() => ({
         phrases: [],
