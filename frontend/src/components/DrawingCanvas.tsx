@@ -256,7 +256,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isEnabled }) => {
   }, [thickness, isEraserMode]);
 
   return (
-    <div className="w-full flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4">
       {currentModifierType === 'continuous' && isDrawing && (
         <div className="text-red-500 font-medium">
           Alert: Lifting the pen will submit your drawing!

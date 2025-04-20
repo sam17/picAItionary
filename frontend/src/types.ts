@@ -7,6 +7,8 @@ export type GamePhase =
   | 'show-result'
   | 'game-over';
 
+export type ModifierType = 'non-dominant' | 'speed' | 'bold' | 'straight' | 'continuous' | 'lucky';
+
 export interface GameState {
   phrases: string[];
   selectedPhraseIndex: number | null;
@@ -30,6 +32,7 @@ export interface GameState {
   aiExplanation: string | null;
   diceRoll: number | null;
   roundModifier: string | null;
+  currentModifierType: ModifierType | null;
 }
 
 export interface GameStore extends GameState {
@@ -49,6 +52,7 @@ export interface GameStore extends GameState {
   isLoading: boolean;
   wittyResponse: string | null;
   aiExplanation: string | null;
+  currentModifierType: ModifierType | null;
   startGame: (maxAttempts: number) => Promise<void>;
   startDrawing: () => void;
   makeGuess: (correct: boolean, guessIndex: number) => void;
@@ -62,5 +66,5 @@ export interface GameStore extends GameState {
   setIsDrawingPhase: (isDrawing: boolean) => void;
   setAiGuess: (guess: number | null) => void;
   endGame: () => Promise<void>;
-  rollDiceAndGetModifier: () => { roll: number; modifier: string };
+  rollDiceAndGetModifier: () => { roll: number; modifier: string; modifierType: ModifierType };
 }

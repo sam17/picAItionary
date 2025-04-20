@@ -340,6 +340,14 @@ function GameComponent() {
                 onTimeUp={handleTimeUp} 
               />
             </div>
+            {diceRoll && roundModifier && (
+              <div className="flex items-center gap-2">
+                <div className="scale-[0.5]">
+                  <Dice roll={diceRoll} modifier={roundModifier} />
+                </div>
+                <p className="text-sm text-pink-500">{roundModifier}</p>
+              </div>
+            )}
             <div className="text-base sm:text-lg">
               Rounds left: {attemptsLeft} | Score: {score}
             </div>
