@@ -124,6 +124,7 @@ export const GameAnalytics: React.FC = () => {
   // Separate rounds by AI model
   const gpt4oMiniRounds = allRounds.filter(round => round.ai_model === 'gpt-4o-mini');
   const gpt4oRounds = allRounds.filter(round => round.ai_model === 'gpt-4o');
+  const o1ProRounds = allRounds.filter(round => round.ai_model === 'o1-pro');
 
   const gpt4oMiniCorrectData = gpt4oMiniRounds.map(round => 
     round.ai_guess_index === round.drawer_choice_index ? 1 : 0
@@ -133,12 +134,17 @@ export const GameAnalytics: React.FC = () => {
     round.ai_guess_index === round.drawer_choice_index ? 1 : 0
   ) as (0 | 1)[];
 
+  const o1ProCorrectData = o1ProRounds.map(round => 
+    round.ai_guess_index === round.drawer_choice_index ? 1 : 0
+  ) as (0 | 1)[];
+
   const playerCorrectData = allRounds.map(round => 
     round.is_correct ? 1 : 0
   ) as (0 | 1)[];
 
   const gpt4oMiniCumulativeData = calculateCumulativePerformance(gpt4oMiniCorrectData);
   const gpt4oCumulativeData = calculateCumulativePerformance(gpt4oCorrectData);
+  const o1ProCumulativeData = calculateCumulativePerformance(o1ProCorrectData);
   const playerCumulativeData = calculateCumulativePerformance(playerCorrectData);
 
   const data = {
@@ -156,6 +162,13 @@ export const GameAnalytics: React.FC = () => {
         data: gpt4oCumulativeData,
         borderColor: 'rgb(255, 159, 64)',
         backgroundColor: 'rgba(255, 159, 64, 0.5)',
+        tension: 0.1,
+      },
+      {
+        label: 'O1-pro Performance',
+        data: o1ProCumulativeData,
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
         tension: 0.1,
       },
       {
@@ -207,10 +220,12 @@ export const GameAnalytics: React.FC = () => {
   const totalRounds = allRounds.length;
   const gpt4oMiniCorrectCount = gpt4oMiniCorrectData.reduce<number>((a, b) => a + b, 0);
   const gpt4oCorrectCount = gpt4oCorrectData.reduce<number>((a, b) => a + b, 0);
+  const o1ProCorrectCount = o1ProCorrectData.reduce<number>((a, b) => a + b, 0);
   const playerCorrectCount = playerCorrectData.reduce<number>((a, b) => a + b, 0);
   
   const gpt4oMiniWinRate = ((gpt4oMiniCorrectCount / gpt4oMiniRounds.length) * 100).toFixed(1);
   const gpt4oWinRate = ((gpt4oCorrectCount / gpt4oRounds.length) * 100).toFixed(1);
+  const o1ProWinRate = ((o1ProCorrectCount / o1ProRounds.length) * 100).toFixed(1);
   const playerWinRate = ((playerCorrectCount / totalRounds) * 100).toFixed(1);
 
   return (
@@ -220,7 +235,7 @@ export const GameAnalytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold mb-6">Game Analytics</h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-red-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-2">GPT-4o-mini Performance</h3>
               <p className="text-2xl font-bold text-red-600">{gpt4oMiniWinRate}%</p>
@@ -230,6 +245,11 @@ export const GameAnalytics: React.FC = () => {
               <h3 className="text-lg font-semibold mb-2">GPT-4o Performance</h3>
               <p className="text-2xl font-bold text-orange-600">{gpt4oWinRate}%</p>
               <p className="text-gray-600">Win Rate ({gpt4oCorrectCount}/{gpt4oRounds.length} rounds)</p>
+            </div>
+            <div className="bg-teal-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">O1-pro Performance</h3>
+              <p className="text-2xl font-bold text-teal-600">{o1ProWinRate}%</p>
+              <p className="text-gray-600">Win Rate ({o1ProCorrectCount}/{o1ProRounds.length} rounds)</p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-2">Player Performance</h3>

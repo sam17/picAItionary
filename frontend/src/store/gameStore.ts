@@ -30,6 +30,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isLoading: false,
   wittyResponse: null,
   aiExplanation: null,
+  currentAiModel: null,
 
   startGame: async (maxAttempts) => {
     try {
@@ -131,13 +132,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         console.log('Setting AI guess index:', isValidIndex ? guessIndex : null);
         set({
           aiGuess: isValidIndex ? guessIndex : null,
-          isLoading: false
+          isLoading: false,
+          currentAiModel: data.model
         });
       } else {
         console.log('No valid AI guess found in response');
         set({ 
           aiGuess: null,
-          isLoading: false 
+          isLoading: false,
+          currentAiModel: data.model
         });
       }
     } catch (error) {
@@ -205,8 +208,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         player_guess: playerGuess,
         player_guess_index: guessIndex,
         is_correct: correct,
-        ai_model: state.currentRoundNumber % 3 === 0 ? "o3-mini" : 
-                 state.currentRoundNumber % 3 === 1 ? "gpt-4o-mini" : "gpt-4o"
+        ai_model: state.currentAiModel
       }),
     })
     .then(response => {

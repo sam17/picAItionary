@@ -33,10 +33,14 @@ export interface GameState {
 export interface GameStore extends GameState {
   phrases: string[];
   selectedPhraseIndex: number | null;
-  isGameStarted: boolean;
-  isDrawingPhase: boolean;
+  currentPlayer: 'drawer' | 'guesser';
+  timeRemaining: number;
+  maxAttempts: number;
   attemptsLeft: number;
   score: number;
+  isGameStarted: boolean;
+  isDrawingPhase: boolean;
+  currentDrawing: string | null;
   gamePhase: GamePhase;
   lastGuessCorrect: boolean | null;
   aiGuess: number | null;
@@ -47,6 +51,7 @@ export interface GameStore extends GameState {
   isLoading: boolean;
   wittyResponse: string | null;
   aiExplanation: string | null;
+  currentAiModel: string | null;
   startGame: (maxAttempts: number) => Promise<void>;
   startDrawing: () => void;
   makeGuess: (correct: boolean, guessIndex: number) => void;

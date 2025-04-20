@@ -171,7 +171,8 @@ async def analyze_drawing_endpoint(
         request.image_data, 
         request.prompt,
         game_id=request.game_id,
-        round_number=request.round_number
+        round_number=request.round_number,
+        all_options=options
     )
     
     if not result["success"]:
@@ -192,14 +193,16 @@ async def analyze_drawing_endpoint(
         return {
             "success": True,
             "word": str(guess_index),  # Keep as string for API compatibility
-            "confidence": result.get("confidence", "high")
+            "confidence": result.get("confidence", "high"),
+            "model": result.get("model")  # Return the model name
         }
     except (ValueError, AttributeError):
         logger.error("Failed to parse AI response as number")
         return {
             "success": False,
             "word": None,
-            "confidence": "low"
+            "confidence": "low",
+            "model": result.get("model")
         }
 
 @app.post("/create-game", dependencies=[Depends(verify_api_key)])

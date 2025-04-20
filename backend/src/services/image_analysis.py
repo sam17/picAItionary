@@ -59,19 +59,22 @@ def analyze_drawing(
     image_data: str, 
     prompt: Optional[str] = None,
     game_id: int = 1,
-    round_number: int = 1
+    round_number: int = 1,
+    all_options: List[str] = []
 ) -> dict:
     """
     Analyze a drawing using OpenAI's GPT-4 Vision model.
+    Expects a prompt asking for an index and returns a numeric index.
     
     Args:
         image_data: Base64 encoded image data
-        prompt: Custom prompt that includes numbered options and asks for index
+        prompt: Optional prompt text
         game_id: ID of the current game
         round_number: Current round number in the game
+        all_options: List of available options to choose from
         
     Returns:
-        dict: Analysis results including the index and confidence
+        dict: Response containing the AI's guess and confidence
     """
     try:
         # Log current conversation state
@@ -79,6 +82,9 @@ def analyze_drawing(
             f"Starting analyze_drawing with {len(conversation_history)} "
             "previous messages"
         )
+        
+        # Decode base64 image
+        image_bytes = base64.b64decode(image_data.split(',')[1])
         
         # Default prompt if none provided 
         default_prompt = (
@@ -98,9 +104,6 @@ def analyze_drawing(
         
         # Use custom prompt if provided
         analysis_prompt = prompt or default_prompt
-        
-        # Decode base64 image
-        image_bytes = base64.b64decode(image_data.split(',')[1])
         
         # Prepare messages with conversation history
         messages = conversation_history.copy()
@@ -130,29 +133,30 @@ def analyze_drawing(
             f"(including {len(conversation_history)} from history)"
         )
         
-        # Alternate between models based on game and round numbers
-        # This ensures consistent alternation across games
+        # Calculate total rounds for consistent model selection
         total_rounds = (game_id - 1) * 10 + round_number  # Assuming max 10 rounds per game
-        model = "gpt-4o" if total_rounds % 2 == 0 else "gpt-4o-mini"
-        logger.info(f"Using model: {model} for game {game_id}, round {round_number}")
+        
+        # Select model based on total rounds
+        if total_rounds % 3 == 0:
+            model = "o1-pro"
+        elif total_rounds % 3 == 1:
+            model = "gpt-4o-mini"
+        else:
+            model = "gpt-4o"
+            
+        logger.info(
+            f"Using model: {model} for game {game_id}, round {round_number}"
+        )
         
         # Call OpenAI API with vision model
         response = client.chat.completions.create(
             model=model,
             messages=messages
         )
+        ai_response = response.choices[0].message.content.strip()
         
         # Log AI's response
-        ai_response = response.choices[0].message.content.strip()
         logger.info(f"AI Response: {ai_response}")
-        
-        # Split response into witty response and explanation
-        parts = ai_response.split("|")
-        witty_message = parts[0].strip()
-        explanation = parts[1].strip() if len(parts) > 1 else ""
-        
-        logger.info(f"Witty Response: {witty_message}")
-        logger.info(f"AI Explanation: {explanation}")
         
         # Add AI's response to conversation history
         assistant_message = {
@@ -168,25 +172,27 @@ def analyze_drawing(
         )
         
         # Extract and validate the response is a number
-        word = witty_message
         try:
-            index = int(word)
+            index = int(ai_response)
             if index < 0:
                 return {
                     "success": False,
                     "word": None,
-                    "error": "Index cannot be negative"
+                    "error": "Index cannot be negative",
+                    "model": model
                 }
             return {
                 "success": True,
                 "word": str(index),
-                "confidence": "high"
+                "confidence": "high",
+                "model": model
             }
         except ValueError:
             return {
                 "success": False,
                 "word": None,
-                "error": "AI response was not a valid index"
+                "error": "AI response was not a valid index",
+                "model": model
             }
         
     except Exception as e:

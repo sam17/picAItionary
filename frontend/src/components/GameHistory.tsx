@@ -16,7 +16,9 @@ interface GameRound {
   image_data: string;
   witty_response: string | null;
   ai_explanation: string | null;
-  ai_model: string;
+  ai_model: 'gpt-4o' | 'gpt-4o-mini' | 'o1-pro';
+  ai_guess_index: number | null;
+  drawer_choice_index: number;
 }
 
 interface Game {
