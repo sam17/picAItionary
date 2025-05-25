@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+PicAItionary: A Misdirection Drawing Game  
+Objective: The goal is for humans to mislead the AI with creative drawings, while still trying to convey a recognizable word. The AI has to guess based on the drawing, but humans can confuse it with clever misdirection.  
+How to Play: 
+One person draws a word from a list of words suggested. The one to draw is highlighted. The AI and other humans are shown the same list of words.
+The AI guesses what the drawing is. The other human also guesses.  Humans try to mislead the AI with a tricky or vague drawing, while still giving enough hints for themselves to guess it.  
+
+Points: If AI and human both guess, both get 0. If AI guesses and human does not, human gets -1 and AI guesses +1. If human guesses and AI does not, human gets +1 and AI gets -1.
