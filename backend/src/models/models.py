@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, JSON, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -52,6 +52,7 @@ class GameRound(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     witty_response = Column(String, nullable=True)  # Witty response from AI about the round outcome
     ai_explanation = Column(String, nullable=True)  # AI's explanation for its response
+    points = Column(Integer, nullable=False, default=0)  # Points for this round
     game = relationship("Game", back_populates="rounds")
 
 # Create all tables

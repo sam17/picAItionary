@@ -257,6 +257,18 @@ async def save_game_round(
             all_options=request.all_options
         )
 
+        # Calculate points for this round
+        ai_correct = request.ai_guess_index == request.drawer_choice_index
+        player_correct = request.is_correct
+        if ai_correct and not player_correct:
+            points = -1
+        elif ai_correct and player_correct:
+            points = 0
+        elif not player_correct and not ai_correct:
+            points = 0
+        else:  # player_correct and not ai_correct
+            points = 1
+
         game_round = GameRound(
             game_id=request.game_id,
             round_number=request.round_number,
@@ -270,7 +282,8 @@ async def save_game_round(
             player_guess_index=request.player_guess_index,
             is_correct=request.is_correct,
             witty_response=witty_response.get("message") if witty_response["success"] else None,
-            ai_explanation=witty_response.get("explanation") if witty_response["success"] else None
+            ai_explanation=witty_response.get("explanation") if witty_response["success"] else None,
+            points=points
         )
         db.add(game_round)
         db.commit()
@@ -279,19 +292,6 @@ async def save_game_round(
         # Update game's score after every round
         game = db.query(Game).filter(Game.id == request.game_id).first()
         if game:
-            # Calculate points based on new rules
-            ai_correct = request.ai_guess_index == request.drawer_choice_index
-            player_correct = request.is_correct
-            
-            if ai_correct and not player_correct:
-                points = -1
-            elif ai_correct and player_correct:
-                points = 0
-            elif not player_correct and not ai_correct:
-                points = 0
-            else:  # player_correct and not ai_correct
-                points = 1
-                
             game.final_score += points
             db.commit()
             
@@ -335,7 +335,8 @@ async def get_games(db: Session = Depends(get_db)):
                         "created_at": round.created_at,
                         "image_data": round.image_data,
                         "witty_response": round.witty_response,
-                        "ai_explanation": round.ai_explanation
+                        "ai_explanation": round.ai_explanation,
+                        "points": round.points
                     }
                     for round in game.rounds
                 ]

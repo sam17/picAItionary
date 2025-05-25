@@ -16,6 +16,7 @@ interface GameRound {
   image_data: string;
   witty_response: string | null;
   ai_explanation: string | null;
+  points: number;
 }
 
 interface Game {
@@ -174,7 +175,7 @@ export const GameHistory: React.FC = () => {
                   </div>
                 </div>
                 <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full">
-                  Score: {game.final_score}/{game.total_rounds}
+                  Final Score: {game.final_score}
                 </div>
               </button>
 
@@ -186,10 +187,15 @@ export const GameHistory: React.FC = () => {
                     <div key={round.id} className="border-t pt-6">
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-lg font-semibold">Round {round.round_number}</h3>
-                        <div className={`px-4 py-2 rounded-full ${
-                          round.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {round.is_correct ? 'Correct!' : 'Incorrect'}
+                        <div className="flex items-center gap-4">
+                          <div className={`px-4 py-2 rounded-full ${
+                            round.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {round.is_correct ? 'Correct!' : 'Incorrect'}
+                          </div>
+                          <div className="px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-sm font-medium">
+                            {`Score: ${round.points > 0 ? '+' : ''}${round.points}`}
+                          </div>
                         </div>
                       </div>
 

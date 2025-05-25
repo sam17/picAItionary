@@ -153,7 +153,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     currentDrawing: state.currentDrawing,
   })),
 
-  makeGuess: (correct: boolean, guessIndex: number) => {
+  makeGuess: async (correct: boolean, guessIndex: number) => {
     const state = get();
     console.log('makeGuess called with:', { correct, guessIndex });
     console.log('Current state:', {
@@ -172,7 +172,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
       return;
     }
-    
+
     const drawerChoice = state.phrases[state.selectedPhraseIndex];
     const playerGuess = state.phrases[guessIndex];
     const aiGuess = typeof state.aiGuess === 'number' ? state.phrases[state.aiGuess] : state.aiGuess || 'No guess';
@@ -187,31 +187,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       current_score: state.score
     });
 
-    // Save the game round
-    fetch(`${BACKEND_URL}/save-game-round`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        game_id: state.currentGameId,
-        round_number: state.currentRoundNumber,
-        image_data: state.currentDrawing,
-        all_options: state.phrases,
-        drawer_choice: drawerChoice,
-        drawer_choice_index: state.selectedPhraseIndex,
-        ai_guess: aiGuess,
-        ai_guess_index: state.aiGuess,
-        player_guess: playerGuess,
-        player_guess_index: guessIndex,
-        is_correct: correct,
-      }),
-    })
-    .then(response => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/save-game-round`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          game_id: state.currentGameId,
+          round_number: state.currentRoundNumber,
+          image_data: state.currentDrawing,
+          all_options: state.phrases,
+          drawer_choice: drawerChoice,
+          drawer_choice_index: state.selectedPhraseIndex,
+          ai_guess: aiGuess,
+          ai_guess_index: state.aiGuess,
+          player_guess: playerGuess,
+          player_guess_index: guessIndex,
+          is_correct: correct
+        })
+      });
+
       if (!response.ok) {
-        throw new Error(`Failed to save game round: ${response.status}`);
+        const errorData = await response.json();
+        console.error('Failed to save game round:', errorData);
+        
+        // Fallback score calculation
+        const newScore = state.score + (correct ? 1 : -1);
+        set({ score: newScore });
+        throw new Error('Failed to save game round');
       }
-      return response.json();
-    })
-    .then(data => {
+
+      const data = await response.json();
       console.log('Game round saved successfully:', data);
       // Update the score based on backend response
       set((state) => {
@@ -243,8 +248,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           aiExplanation: data.ai_explanation
         };
       });
-    })
-    .catch(error => {
+    } catch (error) {
       console.error('Error saving game round:', error);
       // Fallback to local score calculation if backend fails
       set((state) => {
@@ -289,7 +293,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           aiExplanation: null
         };
       });
-    });
+    }
   },
 
   continueToNextRound: async () => {
@@ -358,9 +362,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }),
       });
 
+      const endGameData = await endGameResponse.json();
+      
       if (!endGameResponse.ok) {
-        const errorData = await endGameResponse.json();
-        console.error('Failed to end game:', errorData);
+        console.error('Failed to end game:', endGameData);
         throw new Error('Failed to end game');
       }
 
