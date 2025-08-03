@@ -7,19 +7,17 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install poetry
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Copy dependency files
-COPY pyproject.toml poetry.lock ./
-
-# Configure poetry
-RUN poetry config virtualenvs.create false
+COPY pyproject.toml uv.lock ./
 
 # Install dependencies
-RUN poetry install --no-dev
+RUN uv sync --frozen --no-cache
 
 # Copy application code
 COPY . .
@@ -32,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/v2/health || exit 1
 
 # Run application
-CMD ["python", "-m", "app.main"]
+CMD ["uv", "run", "python", "-m", "app.main"]
