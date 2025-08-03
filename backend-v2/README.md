@@ -78,19 +78,17 @@ The API will be available at `http://localhost:8000` with interactive docs at `h
 
 ## API Endpoints
 
-### Game Management
-- `POST /api/v2/create-game` - Create new game session
+### External (Unity Client)
 - `POST /api/v2/analyze-drawing` - AI drawing analysis
-- `POST /api/v2/save-game-round` - Save complete round data
+- `POST /api/v2/save-game-round` - Save complete round data (auto-creates games)
 
-### Analytics & Monitoring
+### Internal (Analytics & Monitoring)
 - `GET /api/v2/stats` - Real-time game statistics
 - `GET /api/v2/model-comparison` - AI model performance comparison
 - `GET /api/v2/api-performance` - API response time metrics
 - `GET /api/v2/health` - Health check with database status
-
-### Configuration
 - `GET /api/v2/prompt-versions` - Available prompt versions
+- `GET /api/v2/analysis-logs` - Recent AI analysis logs for debugging
 
 ## AI Provider Configuration
 
@@ -133,17 +131,27 @@ prompt_manager.add_prompt_version(
 
 ### Basic Usage
 ```csharp
-// Create game
-var createRequest = new CreateGameRequest { 
-    total_rounds = 5,
-    unity_session_id = "unity-session-123"
-};
-
-// Analyze drawing
+// Analyze drawing during gameplay
 var analysisRequest = new DrawingAnalysisRequest {
     image_data = Convert.ToBase64String(drawingBytes),
     options = new[] { "cat", "dog", "bird", "fish" },
     prompt_version = "v2"
+};
+
+// Save complete round data (auto-creates game if needed)
+var roundRequest = new SaveGameRoundRequest {
+    game_id = 100, // Any unique ID
+    round_number = 1,
+    image_data = drawingData,
+    drawing_time_seconds = 25.5f,
+    all_options = new[] { "cat", "dog", "bird", "fish" },
+    correct_option = "cat",
+    correct_option_index = 0,
+    human_guess = "dog",
+    human_guess_index = 1,
+    human_is_correct = false,
+    ai_prompt_version = "v2",
+    round_modifiers = new[] { "non_dominant_hand" }
 };
 ```
 
