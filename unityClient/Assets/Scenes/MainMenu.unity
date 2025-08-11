@@ -462,7 +462,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 131163748}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 678302991}
+        m_TargetAssemblyTypeName: UI.Lobby.UIManager, Assembly-CSharp
+        m_MethodName: ShowJoinMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &131163748
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1814,7 +1826,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 597211762}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 678302991}
+        m_TargetAssemblyTypeName: UI.Lobby.UIManager, Assembly-CSharp
+        m_MethodName: OnJoinButtonClicked
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &597211762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1904,6 +1928,7 @@ MonoBehaviour:
   lobby: {fileID: 714548170}
   mainMenu: {fileID: 295182403}
   joinMenu: {fileID: 235720840}
+  joinCodeInputField: {fileID: 767777091}
 --- !u!1 &714548168
 GameObject:
   m_ObjectHideFlags: 0

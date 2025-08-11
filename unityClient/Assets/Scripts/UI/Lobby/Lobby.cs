@@ -14,5 +14,12 @@ namespace UI.Lobby
             lobbyCode.text = joinCode;
             Debug.Log($"Lobby started with Join Code: {joinCode}");
         }
+        
+        public void StartLobbyForClient(string joinCode)
+        {
+            lobbyPanel.SetActive(true);
+            lobbyCode.text = joinCode;
+            Debug.Log($"Lobby started for client with Join Code: {joinCode}");
+        }
     }
 }

@@ -13,24 +13,35 @@ public class ConnectionManager : MonoBehaviour
     [SerializeField] private int maxConnections = 12;
     [SerializeField] private string connectionType = "udp"; // or "tcp"
     
+    public static ConnectionManager Instance;
     
-    public void OnStartAsHost()
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    
+    public async void OnStartAsHost()
     {
         Debug.Log("Starting as Host");
-        var joinCodeTask = StartHostWithRelay(maxConnections, connectionType);
+        var joinCode = await StartHostWithRelay(maxConnections, connectionType);
         
-        joinCodeTask.ContinueWith(task =>
+        if (!string.IsNullOrEmpty(joinCode))
         {
-            if (task.IsCompletedSuccessfully)
-            {
-                Debug.Log($"Host started successfully with Join Code: {task.Result}");
-                UIManager.Instance.StartLobbyForHost(task.Result);
-            }
-            else
-            {
-                Debug.LogError($"Failed to start host: {task.Exception?.Message}");
-            }
-        });
+            Debug.Log($"Host started successfully with Join Code: {joinCode}");
+            UIManager.Instance.StartLobbyForHost(joinCode);
+        }
+        else
+        {
+            Debug.LogError("Failed to start host: Join code is null or empty");
+        }
     }
     
     public async Task<string> StartHostWithRelay(int maxConnections, string connectionType)
@@ -46,8 +57,34 @@ public class ConnectionManager : MonoBehaviour
         return NetworkManager.Singleton.StartHost() ? joinCode : null;
     }
     
-    public void OnJoinAsClient()
+    
+    public async Task<bool> StartClientWithRelay(string joinCode, string connectionType)
     {
-        Debug.Log("Joining as Client");
+        await UnityServices.InitializeAsync();
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+
+        var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode: joinCode);
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, connectionType));
+        return !string.IsNullOrEmpty(joinCode) && NetworkManager.Singleton.StartClient();
+    }
+    
+    public void OnJoinAsClient(string joinCode)
+    {
+        Debug.Log($"Joining as Client with Join Code: {joinCode}");
+        StartClientWithRelay(joinCode, connectionType).ContinueWith(task =>
+        {
+            if (task.Result)
+            {
+                Debug.Log("Client started successfully");
+                UIManager.Instance.StartLobbyForClient(joinCode);
+            }
+            else
+            {
+                Debug.LogError("Failed to start client");
+            }
+        });
     }
 }
