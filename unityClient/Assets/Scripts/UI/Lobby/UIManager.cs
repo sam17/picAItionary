@@ -9,6 +9,7 @@ namespace UI.Lobby
         [SerializeField] private GameObject mainMenu;
         [SerializeField] private GameObject joinMenu;
         [SerializeField] private TMP_InputField joinCodeInputField;
+        [SerializeField] private TMP_InputField nameInputField;
 
         public static UIManager Instance;
         
@@ -57,6 +58,19 @@ namespace UI.Lobby
             lobby.StartLobbyForClient(joinCode);
             mainMenu.SetActive(false);
             joinMenu.SetActive(false);
+        }
+        
+        public string GetPlayerName()
+        {
+            return nameInputField != null ? nameInputField.text.Trim() : "";
+        }
+        
+        public void RefreshPlayerList()
+        {
+            if (lobby != null)
+            {
+                lobby.RefreshPlayerList();
+            }
         }
        
     }

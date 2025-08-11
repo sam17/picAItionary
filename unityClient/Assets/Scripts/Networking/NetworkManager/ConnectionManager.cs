@@ -21,11 +21,37 @@ public class ConnectionManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SetupNetworkCallbacks();
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+    
+    private void SetupNetworkCallbacks()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+    }
+    
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+        }
+    }
+    
+    private void OnClientConnected(ulong clientId)
+    {
+        Debug.Log($"Client {clientId} connected");
+    }
+    
+    private void OnClientDisconnected(ulong clientId)
+    {
+        Debug.Log($"Client {clientId} disconnected");
     }
     
     public async void OnStartAsHost()
