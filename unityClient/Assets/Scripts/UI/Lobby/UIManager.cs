@@ -72,6 +72,13 @@ namespace UI.Lobby
                 lobby.RefreshPlayerList();
             }
         }
+        
+        public void ReturnToMainMenu()
+        {
+            Debug.Log("Returning to main menu");
+            mainMenu.SetActive(true);
+            joinMenu.SetActive(false);
+        }
        
     }
 }

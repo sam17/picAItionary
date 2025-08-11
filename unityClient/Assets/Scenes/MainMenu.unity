@@ -1929,6 +1929,7 @@ MonoBehaviour:
   mainMenu: {fileID: 295182403}
   joinMenu: {fileID: 235720840}
   joinCodeInputField: {fileID: 767777091}
+  nameInputField: {fileID: 1091245353}
 --- !u!1 &714548168
 GameObject:
   m_ObjectHideFlags: 0
@@ -1980,6 +1981,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lobbyPanel: {fileID: 291486883}
   lobbyCode: {fileID: 2040408631}
+  playerListItemPrefab: {fileID: 6883646834367423807, guid: e22358a41a804481ba43450f7530c1bd, type: 3}
+  playerListContainer: {fileID: 1874479616}
+  readyButton: {fileID: 502603457}
+  leaveButton: {fileID: 299574992}
+  startButton: {fileID: 1669608475}
+  readyButtonText: {fileID: 1431355279}
 --- !u!1 &767777089
 GameObject:
   m_ObjectHideFlags: 0

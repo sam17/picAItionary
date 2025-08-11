@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using UI.Lobby;
 using Unity.Netcode;
@@ -21,14 +22,18 @@ public class ConnectionManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            SetupNetworkCallbacks();
         }
         else
         {
             Destroy(gameObject);
         }
     }
-    
+
+    private void Start()
+    {
+        SetupNetworkCallbacks();
+    }
+
     private void SetupNetworkCallbacks()
     {
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -52,6 +57,18 @@ public class ConnectionManager : MonoBehaviour
     private void OnClientDisconnected(ulong clientId)
     {
         Debug.Log($"Client {clientId} disconnected");
+        
+        // If we're a client and the host disconnected (clientId 0), return to main menu
+        if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsHost && clientId == 0)
+        {
+            Debug.Log("Host disconnected, returning to main menu");
+            NetworkManager.Singleton.Shutdown();
+            
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ReturnToMainMenu();
+            }
+        }
     }
     
     public async void OnStartAsHost()
