@@ -60,23 +60,32 @@ public class ConnectionManager : MonoBehaviour
     
     public async Task<bool> StartClientWithRelay(string joinCode, string connectionType)
     {
-        await UnityServices.InitializeAsync();
-        if (!AuthenticationService.Instance.IsSignedIn)
+        try
         {
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        }
+            await UnityServices.InitializeAsync();
+            if (!AuthenticationService.Instance.IsSignedIn)
+            {
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            }
 
-        var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode: joinCode);
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, connectionType));
-        return !string.IsNullOrEmpty(joinCode) && NetworkManager.Singleton.StartClient();
+            var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode: joinCode);
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, connectionType));
+            return !string.IsNullOrEmpty(joinCode) && NetworkManager.Singleton.StartClient();
+        }
+        catch (RelayServiceException e)
+        {
+            Debug.Log($"Failed to join relay: {e.Message} (Error Code: {e.ErrorCode})");
+            throw;
+        }
     }
     
-    public void OnJoinAsClient(string joinCode)
+    public async void OnJoinAsClient(string joinCode)
     {
         Debug.Log($"Joining as Client with Join Code: {joinCode}");
-        StartClientWithRelay(joinCode, connectionType).ContinueWith(task =>
+        try
         {
-            if (task.Result)
+            var success = await StartClientWithRelay(joinCode, connectionType);
+            if (success)
             {
                 Debug.Log("Client started successfully");
                 UIManager.Instance.StartLobbyForClient(joinCode);
@@ -85,6 +94,14 @@ public class ConnectionManager : MonoBehaviour
             {
                 Debug.LogError("Failed to start client");
             }
-        });
+        }
+        catch (RelayServiceException e)
+        {
+            Debug.LogError($"Failed to join with code '{joinCode}': {e.Message}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Unexpected error while joining: {e.Message}");
+        }
     }
 }
