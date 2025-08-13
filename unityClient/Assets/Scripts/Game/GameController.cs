@@ -549,14 +549,31 @@ namespace Game
             // Show results
             SetState(GameState.Results);
             
-            // Auto-advance after delay
-            StartCoroutine(AutoAdvanceFromResults());
+            // No longer auto-advance - wait for user to click continue button
         }
         
-        private IEnumerator AutoAdvanceFromResults()
+        // Called by UI button to continue from results screen
+        public void ContinueFromResults()
         {
-            yield return new WaitForSeconds(5f);
+            if (CurrentState != GameState.Results) return;
             
+            if (isLocalMode)
+            {
+                AdvanceToNextRound();
+            }
+            else if (IsServer)
+            {
+                AdvanceToNextRound();
+            }
+            else
+            {
+                // Client requests server to advance
+                RequestContinueFromResultsServerRpc();
+            }
+        }
+        
+        private void AdvanceToNextRound()
+        {
             // Move to next turn
             currentTurnIndex = (currentTurnIndex + 1) % playerOrder.Count;
             
@@ -572,6 +589,13 @@ namespace Game
             {
                 StartNewRound();
             }
+        }
+        
+        // Deprecated - keeping for reference but not used anymore
+        private IEnumerator AutoAdvanceFromResults()
+        {
+            yield return new WaitForSeconds(5f);
+            AdvanceToNextRound();
         }
         
         public void RestartGame()
@@ -650,6 +674,15 @@ namespace Game
         private void SubmitGuessServerRpc(ulong playerId, int guessIndex)
         {
             ProcessGuess(playerId, guessIndex);
+        }
+        
+        [ServerRpc(RequireOwnership = false)]
+        private void RequestContinueFromResultsServerRpc()
+        {
+            if (CurrentState == GameState.Results)
+            {
+                AdvanceToNextRound();
+            }
         }
         
         // Client RPCs

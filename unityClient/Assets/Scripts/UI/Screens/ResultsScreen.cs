@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Game;
 
 namespace UI
 {
@@ -15,6 +16,34 @@ namespace UI
         [SerializeField] private Image aiResultIcon;
         [SerializeField] private Sprite correctIcon;
         [SerializeField] private Sprite wrongIcon;
+        
+        [Header("Buttons")]
+        [SerializeField] private Button continueButton;
+        
+        private void Awake()
+        {
+            // Setup button click handler
+            if (continueButton != null)
+            {
+                continueButton.onClick.RemoveAllListeners();
+                continueButton.onClick.AddListener(OnContinueClicked);
+            }
+        }
+        
+        private void OnContinueClicked()
+        {
+            Debug.Log("ResultsScreen: Continue button clicked");
+            
+            // Call the GameController to advance to next round
+            if (GameController.Instance != null)
+            {
+                GameController.Instance.ContinueFromResults();
+            }
+            else
+            {
+                Debug.LogError("ResultsScreen: GameController instance not found!");
+            }
+        }
         
         public void Setup(string correctAnswer, bool playersCorrect, bool aiCorrect, int playersScore, int aiScore)
         {
