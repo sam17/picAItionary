@@ -55,14 +55,38 @@ namespace Game
         [SerializeField] private int multiplayerRounds = 5;
         
         [Header("Network State")]
-        private NetworkVariable<GameState> currentState = new NetworkVariable<GameState>(GameState.WaitingToStart);
-        private NetworkVariable<GameMode> gameMode = new NetworkVariable<GameMode>();
-        private NetworkVariable<int> currentRound = new NetworkVariable<int>(0);
-        private NetworkVariable<int> totalRounds = new NetworkVariable<int>(3);
-        private NetworkVariable<ulong> currentDrawerId = new NetworkVariable<ulong>(0);
-        private NetworkVariable<int> playersScore = new NetworkVariable<int>(0);
-        private NetworkVariable<int> aiScore = new NetworkVariable<int>(0);
-        private NetworkVariable<int> correctAnswerIndex = new NetworkVariable<int>(0);
+        private NetworkVariable<GameState> currentState = new NetworkVariable<GameState>(
+            GameState.WaitingToStart,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<GameMode> gameMode = new NetworkVariable<GameMode>(
+            default,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<int> currentRound = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<int> totalRounds = new NetworkVariable<int>(
+            3,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<ulong> currentDrawerId = new NetworkVariable<ulong>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<int> playersScore = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<int> aiScore = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private NetworkVariable<int> correctAnswerIndex = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
         
         // Local mode backing fields (for when not using networking)
         private GameState localCurrentState = GameState.WaitingToStart;
@@ -316,11 +340,19 @@ namespace Game
             }
             
             // Create round data
+            Debug.Log($"GameController: Current turn index: {currentTurnIndex}, Player order count: {playerOrder.Count}");
+            if (currentTurnIndex < playerOrder.Count)
+            {
+                Debug.Log($"GameController: Setting drawer to player {playerOrder[currentTurnIndex]}");
+            }
+            
             currentRoundData = new RoundData
             {
                 roundNumber = isLocalMode ? localCurrentRound : currentRound.Value,
                 drawerId = playerOrder[currentTurnIndex]
             };
+            
+            Debug.Log($"GameController: Round {currentRoundData.roundNumber} - Drawer is player {currentRoundData.drawerId}");
             
             // Generate drawing options
             GenerateDrawingOptions();
@@ -332,7 +364,15 @@ namespace Game
             }
             else
             {
-                currentDrawerId.Value = currentRoundData.drawerId;
+                // Only server should set NetworkVariables
+                if (IsServer)
+                {
+                    currentDrawerId.Value = currentRoundData.drawerId;
+                    Debug.Log($"GameController: Server set currentDrawerId NetworkVariable to {currentDrawerId.Value}");
+                    
+                    // Force the NetworkVariable to update immediately
+                    currentDrawerId.SetDirty(true);
+                }
             }
             
             // Start with drawer ready state
@@ -693,7 +733,11 @@ namespace Game
             }
             else
             {
-                return NetworkManager.Singleton.LocalClientId == (isLocalMode ? localCurrentDrawerId : currentDrawerId.Value);
+                var localId = NetworkManager.Singleton.LocalClientId;
+                var drawerId = isLocalMode ? localCurrentDrawerId : currentDrawerId.Value;
+                bool isDrawer = localId == drawerId;
+                Debug.Log($"GameController: IsLocalPlayerDrawer check - LocalClientId: {localId}, DrawerId: {drawerId}, IsDrawer: {isDrawer}");
+                return isDrawer;
             }
         }
         
@@ -716,8 +760,24 @@ namespace Game
         
         private void HandleDrawerChange(ulong oldValue, ulong newValue)
         {
+            Debug.Log($"GameController: HandleDrawerChange called - old: {oldValue}, new: {newValue} (IsServer: {IsServer}, IsClient: {IsClient})");
+            
+            // Update the local round data when drawer changes
+            if (currentRoundData != null)
+            {
+                currentRoundData.drawerId = newValue;
+                Debug.Log($"GameController: Updated currentRoundData.drawerId to {newValue}");
+            }
+            
             string drawerName = gameMode.Value == GameMode.Local ? "You" : $"Player {newValue}";
             OnDrawerChanged?.Invoke(drawerName);
+            
+            // If we're in DrawerReady state, re-evaluate UI
+            if (currentState.Value == GameState.DrawerReady)
+            {
+                Debug.Log($"GameController: Re-triggering state change for DrawerReady after drawer update");
+                OnStateChanged?.Invoke(GameState.DrawerReady, GameState.DrawerReady);
+            }
         }
         
         // Server RPCs
@@ -780,7 +840,8 @@ namespace Game
                 currentRoundData.options.Add(new DrawingOption(option3, 2));
                 currentRoundData.options.Add(new DrawingOption(option4, 3));
                 
-                Debug.Log($"GameController Client: Round data synced with 4 options");
+                Debug.Log($"GameController Client: Round data synced with 4 options, Drawer is {drawerId}");
+                Debug.Log($"GameController Client: Current NetworkVariable drawerId is {currentDrawerId.Value}");
             }
         }
         
