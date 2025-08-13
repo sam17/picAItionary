@@ -59,6 +59,7 @@ public class Player : NetworkBehaviour
         UpdatePlayerList();
     }
     
+    
     private void OnPlayerNameChanged(FixedString32Bytes oldValue, FixedString32Bytes newValue)
     {
         UpdatePlayerList();

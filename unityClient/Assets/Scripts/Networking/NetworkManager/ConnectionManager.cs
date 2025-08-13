@@ -74,6 +74,11 @@ public class ConnectionManager : MonoBehaviour
     public async void OnStartAsHost()
     {
         Debug.Log("Starting as Host");
+        
+        // Set game mode to multiplayer
+        PlayerPrefs.SetInt("GameMode", 1); // 1 = Multiplayer
+        PlayerPrefs.Save();
+        
         var joinCode = await StartHostWithRelay(maxConnections, connectionType);
         
         if (!string.IsNullOrEmpty(joinCode))
@@ -137,6 +142,11 @@ public class ConnectionManager : MonoBehaviour
     public async void OnJoinAsClient(string joinCode)
     {
         Debug.Log($"Joining as Client with Join Code: {joinCode}");
+        
+        // Set game mode to multiplayer
+        PlayerPrefs.SetInt("GameMode", 1); // 1 = Multiplayer
+        PlayerPrefs.Save();
+        
         try
         {
             var success = await StartClientWithRelay(joinCode, connectionType);

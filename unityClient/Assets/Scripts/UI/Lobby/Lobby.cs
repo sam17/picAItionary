@@ -149,6 +149,9 @@ namespace UI.Lobby
             if (AreAllPlayersReady())
             {
                 Debug.Log("Starting game...");
+                // Set game mode to multiplayer before loading the scene
+                PlayerPrefs.SetInt("GameMode", 1); // 1 = Multiplayer
+                PlayerPrefs.Save();
                 NetworkManager.Singleton.SceneManager.LoadScene("Game", UnityEngine.SceneManagement.LoadSceneMode.Single);
             }
             else

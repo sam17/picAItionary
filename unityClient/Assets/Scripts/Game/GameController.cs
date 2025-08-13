@@ -104,23 +104,40 @@ namespace Game
             if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                // Only use DontDestroyOnLoad for local mode
+                // For networked mode, the NetworkObject handles persistence
+                if (!NetworkManager.Singleton || !NetworkManager.Singleton.IsListening)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
+                // Initialize NetworkList in Awake
                 playerOrder = new NetworkList<ulong>();
             }
             else
             {
+                Debug.LogWarning("GameController: Duplicate instance detected, destroying");
                 Destroy(gameObject);
             }
         }
         
         private void Start()
         {
-            // Check if we should initialize in local mode without networking
-            if (testLocal || PlayerPrefs.GetInt("GameMode", 1) == 0)
+            // Only initialize local mode if:
+            // 1. testLocal is true OR
+            // 2. GameMode is set to local (0) AND NetworkManager is not running
+            bool isNetworkActive = NetworkManager.Singleton != null && 
+                                  (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient);
+            
+            if (testLocal || (PlayerPrefs.GetInt("GameMode", 1) == 0 && !isNetworkActive))
             {
                 // Initialize for local mode without networking
                 Debug.Log("GameController: Starting in local mode without networking");
                 InitializeLocalMode();
+            }
+            else if (isNetworkActive)
+            {
+                Debug.Log("GameController: Network is active, waiting for OnNetworkSpawn");
+                // GameController will be spawned by GameSpawnManager and OnNetworkSpawn will be called
             }
         }
         
@@ -159,17 +176,31 @@ namespace Game
         {
             base.OnNetworkSpawn();
             
+            Debug.Log($"GameController: OnNetworkSpawn called. IsServer: {IsServer}, IsClient: {IsClient}, IsHost: {IsHost}");
+            
             if (IsServer)
             {
+                Debug.Log("GameController: Server detected, initializing game");
                 InitializeGame();
             }
+            else
+            {
+                Debug.Log("GameController: Client detected, waiting for server to initialize");
+                // Initialize currentRoundData for clients
+                if (currentRoundData == null)
+                {
+                    currentRoundData = new RoundData();
+                }
+            }
             
-            // Subscribe to network variable changes
+            // Subscribe to network variable changes - these work for both server and client
             currentState.OnValueChanged += HandleStateChange;
             playersScore.OnValueChanged += HandleScoreChange;
             aiScore.OnValueChanged += HandleScoreChange;
             currentRound.OnValueChanged += HandleRoundChange;
             currentDrawerId.OnValueChanged += HandleDrawerChange;
+            
+            Debug.Log($"GameController: Subscribed to network variable changes. Current state: {currentState.Value}");
         }
         
         public override void OnNetworkDespawn()
@@ -222,14 +253,18 @@ namespace Game
         
         private void SetupPlayerOrder()
         {
+            Debug.Log("GameController: SetupPlayerOrder called");
+            
             if (playerOrder == null)
             {
-                playerOrder = new NetworkList<ulong>();
+                Debug.LogError("GameController: playerOrder is null, cannot setup!");
+                return;
             }
             
             playerOrder.Clear();
             
             var mode = isLocalMode ? localGameMode : gameMode.Value;
+            Debug.Log($"GameController: Setting up player order for mode: {mode}");
             
             if (mode == GameMode.Local)
             {
@@ -240,17 +275,34 @@ namespace Game
             else
             {
                 // All connected players for multiplayer
-                foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+                var connectedClients = NetworkManager.Singleton.ConnectedClientsIds;
+                Debug.Log($"GameController: Found {connectedClients.Count} connected clients");
+                
+                foreach (var clientId in connectedClients)
                 {
                     playerOrder.Add(clientId);
+                    Debug.Log($"GameController: Added player {clientId} to order");
                 }
-                Debug.Log($"GameController: Multiplayer mode - {playerOrder.Count} players");
+                Debug.Log($"GameController: Multiplayer mode - {playerOrder.Count} players in order");
             }
         }
         
         public void StartNewRound()
         {
-            if (!isLocalMode && !IsServer) return;
+            Debug.Log($"GameController: StartNewRound called. IsLocalMode: {isLocalMode}, IsServer: {IsServer}");
+            
+            if (!isLocalMode && !IsServer) 
+            {
+                Debug.Log("GameController: Not server in multiplayer mode, returning");
+                return;
+            }
+            
+            // Check if playerOrder has players
+            if (playerOrder == null || playerOrder.Count == 0)
+            {
+                Debug.LogError("GameController: Cannot start round - no players in order!");
+                return;
+            }
             
             if (isLocalMode)
             {
@@ -266,7 +318,7 @@ namespace Game
             // Create round data
             currentRoundData = new RoundData
             {
-                roundNumber = currentRound.Value,
+                roundNumber = isLocalMode ? localCurrentRound : currentRound.Value,
                 drawerId = playerOrder[currentTurnIndex]
             };
             
@@ -287,9 +339,19 @@ namespace Game
             SetState(GameState.DrawerReady);
             
             // Sync round data to clients
-            if (IsHost)
+            if (IsHost || IsServer)
             {
-                SyncRoundDataToClientsClientRpc(currentRoundData.correctOptionIndex);
+                // Send the full round data to clients
+                // We'll send each option individually since arrays aren't directly serializable
+                SyncRoundDataToClientsClientRpc(
+                    currentRoundData.roundNumber,
+                    currentRoundData.drawerId,
+                    currentRoundData.options[0].text,
+                    currentRoundData.options[1].text,
+                    currentRoundData.options[2].text,
+                    currentRoundData.options[3].text,
+                    currentRoundData.correctOptionIndex
+                );
             }
         }
         
@@ -638,6 +700,7 @@ namespace Game
         // Network event handlers
         private void HandleStateChange(GameState oldValue, GameState newValue)
         {
+            Debug.Log($"GameController: HandleStateChange called - {oldValue} to {newValue} (IsServer: {IsServer}, IsClient: {IsClient})");
             OnStateChanged?.Invoke(oldValue, newValue);
         }
         
@@ -687,11 +750,37 @@ namespace Game
         
         // Client RPCs
         [ClientRpc]
-        private void SyncRoundDataToClientsClientRpc(int correctIndex)
+        private void SyncRoundDataToClientsClientRpc(
+            int roundNumber, 
+            ulong drawerId, 
+            string option1,
+            string option2,
+            string option3,
+            string option4,
+            int correctIndex)
         {
-            if (!IsServer && currentRoundData != null)
+            Debug.Log($"GameController Client: Received round data - Round {roundNumber}, Drawer {drawerId}");
+            
+            if (!IsServer)
             {
+                // Create or update round data for clients
+                if (currentRoundData == null)
+                {
+                    currentRoundData = new RoundData();
+                }
+                
+                currentRoundData.roundNumber = roundNumber;
+                currentRoundData.drawerId = drawerId;
                 currentRoundData.correctOptionIndex = correctIndex;
+                
+                // Rebuild options from the individual strings
+                currentRoundData.options.Clear();
+                currentRoundData.options.Add(new DrawingOption(option1, 0));
+                currentRoundData.options.Add(new DrawingOption(option2, 1));
+                currentRoundData.options.Add(new DrawingOption(option3, 2));
+                currentRoundData.options.Add(new DrawingOption(option4, 3));
+                
+                Debug.Log($"GameController Client: Round data synced with 4 options");
             }
         }
         

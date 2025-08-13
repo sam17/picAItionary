@@ -15,10 +15,35 @@ namespace UI
         [SerializeField] private GameObject scoreboardPanel; // Always visible during game
         
         private GameController gameController;
+        private bool isInitialized = false;
         
         private void Start()
         {
-            // Find the game controller
+            // Hide all screens initially
+            HideAllScreens();
+            
+            // Start looking for GameController
+            StartCoroutine(WaitForGameController());
+        }
+        
+        private System.Collections.IEnumerator WaitForGameController()
+        {
+            Debug.Log("GameUIManager: Waiting for GameController...");
+            
+            // Wait until GameController.Instance is available
+            while (GameController.Instance == null)
+            {
+                yield return new WaitForSeconds(0.1f);
+            }
+            
+            Debug.Log("GameUIManager: GameController found!");
+            InitializeWithGameController();
+        }
+        
+        private void InitializeWithGameController()
+        {
+            if (isInitialized) return;
+            
             gameController = GameController.Instance;
             
             if (gameController == null)
@@ -32,8 +57,7 @@ namespace UI
             gameController.OnScoreChanged.AddListener(OnScoreChanged);
             gameController.OnRoundChanged.AddListener(OnRoundChanged);
             
-            // Hide all screens initially
-            HideAllScreens();
+            isInitialized = true;
             
             Debug.Log("GameUIManager: Initialized and listening for state changes");
             
@@ -46,7 +70,7 @@ namespace UI
         
         private void OnDestroy()
         {
-            if (gameController != null)
+            if (gameController != null && isInitialized)
             {
                 gameController.OnStateChanged.RemoveListener(OnGameStateChanged);
                 gameController.OnScoreChanged.RemoveListener(OnScoreChanged);
