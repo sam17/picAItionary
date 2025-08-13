@@ -50,6 +50,7 @@ namespace Game
     public class GameController : NetworkBehaviour
     {
         [Header("Game Configuration")]
+        [SerializeField] private bool testLocal = false;
         [SerializeField] private int localModeRounds = 3;
         [SerializeField] private int multiplayerRounds = 5;
         
@@ -62,6 +63,17 @@ namespace Game
         private NetworkVariable<int> playersScore = new NetworkVariable<int>(0);
         private NetworkVariable<int> aiScore = new NetworkVariable<int>(0);
         private NetworkVariable<int> correctAnswerIndex = new NetworkVariable<int>(0);
+        
+        // Local mode backing fields (for when not using networking)
+        private GameState localCurrentState = GameState.WaitingToStart;
+        private GameMode localGameMode;
+        private int localCurrentRound = 0;
+        private int localTotalRounds = 3;
+        private ulong localCurrentDrawerId = 0;
+        private int localPlayersScore = 0;
+        private int localAiScore = 0;
+        private int localCorrectAnswerIndex = 0;
+        private bool isLocalMode = false;
         
         private NetworkList<ulong> playerOrder;
         private int currentTurnIndex = 0;
@@ -76,13 +88,13 @@ namespace Game
         public UnityEvent<string> OnDrawerChanged;
         
         // Properties for UI access
-        public GameState CurrentState => currentState.Value;
-        public GameMode CurrentGameMode => gameMode.Value;
-        public int CurrentRound => currentRound.Value;
-        public int TotalRounds => totalRounds.Value;
-        public ulong CurrentDrawerId => currentDrawerId.Value;
-        public int PlayersScore => playersScore.Value;
-        public int AiScore => aiScore.Value;
+        public GameState CurrentState => isLocalMode ? localCurrentState : currentState.Value;
+        public GameMode CurrentGameMode => isLocalMode ? localGameMode : gameMode.Value;
+        public int CurrentRound => isLocalMode ? localCurrentRound : currentRound.Value;
+        public int TotalRounds => isLocalMode ? localTotalRounds : totalRounds.Value;
+        public ulong CurrentDrawerId => isLocalMode ? localCurrentDrawerId : currentDrawerId.Value;
+        public int PlayersScore => isLocalMode ? localPlayersScore : playersScore.Value;
+        public int AiScore => isLocalMode ? localAiScore : aiScore.Value;
         public RoundData CurrentRoundData => currentRoundData;
         
         public static GameController Instance { get; private set; }
@@ -99,6 +111,48 @@ namespace Game
             {
                 Destroy(gameObject);
             }
+        }
+        
+        private void Start()
+        {
+            // Check if we should initialize in local mode without networking
+            if (testLocal || PlayerPrefs.GetInt("GameMode", 1) == 0)
+            {
+                // Initialize for local mode without networking
+                Debug.Log("GameController: Starting in local mode without networking");
+                InitializeLocalMode();
+            }
+        }
+        
+        private void InitializeLocalMode()
+        {
+            isLocalMode = true;
+            
+            // Set game mode to local
+            localGameMode = GameMode.Local;
+            
+            Debug.Log($"GameController: Initializing in Local mode (non-networked)");
+            
+            // Set total rounds
+            localTotalRounds = localModeRounds;
+            
+            // Reset scores
+            localPlayersScore = 0;
+            localAiScore = 0;
+            localCurrentRound = 0;
+            
+            // Setup single player
+            if (playerOrder == null)
+                playerOrder = new NetworkList<ulong>();
+            playerOrder.Clear();
+            playerOrder.Add(0);
+            currentTurnIndex = 0;
+            
+            // Initialize round data
+            currentRoundData = new RoundData();
+            
+            // Start the game after a short delay
+            StartCoroutine(StartGameAfterDelay());
         }
         
         public override void OnNetworkSpawn()
@@ -132,8 +186,16 @@ namespace Game
         private void InitializeGame()
         {
             // Determine game mode
-            int modeValue = PlayerPrefs.GetInt("GameMode", 1);
-            gameMode.Value = (GameMode)modeValue;
+            if (testLocal)
+            {
+                gameMode.Value = GameMode.Local;
+                Debug.Log("GameController: Test local mode enabled - forcing Local mode");
+            }
+            else
+            {
+                int modeValue = PlayerPrefs.GetInt("GameMode", 1);
+                gameMode.Value = (GameMode)modeValue;
+            }
             
             Debug.Log($"GameController: Initializing in {gameMode.Value} mode");
             
@@ -160,9 +222,16 @@ namespace Game
         
         private void SetupPlayerOrder()
         {
+            if (playerOrder == null)
+            {
+                playerOrder = new NetworkList<ulong>();
+            }
+            
             playerOrder.Clear();
             
-            if (gameMode.Value == GameMode.Local)
+            var mode = isLocalMode ? localGameMode : gameMode.Value;
+            
+            if (mode == GameMode.Local)
             {
                 // Single player for local mode
                 playerOrder.Add(0);
@@ -181,10 +250,18 @@ namespace Game
         
         public void StartNewRound()
         {
-            if (!IsServer) return;
+            if (!isLocalMode && !IsServer) return;
             
-            currentRound.Value++;
-            Debug.Log($"GameController: Starting round {currentRound.Value}/{totalRounds.Value}");
+            if (isLocalMode)
+            {
+                localCurrentRound++;
+                Debug.Log($"GameController: Starting round {localCurrentRound}/{localTotalRounds}");
+            }
+            else
+            {
+                currentRound.Value++;
+                Debug.Log($"GameController: Starting round {currentRound.Value}/{totalRounds.Value}");
+            }
             
             // Create round data
             currentRoundData = new RoundData
@@ -197,7 +274,14 @@ namespace Game
             GenerateDrawingOptions();
             
             // Set current drawer
-            currentDrawerId.Value = currentRoundData.drawerId;
+            if (isLocalMode)
+            {
+                localCurrentDrawerId = currentRoundData.drawerId;
+            }
+            else
+            {
+                currentDrawerId.Value = currentRoundData.drawerId;
+            }
             
             // Start with drawer ready state
             SetState(GameState.DrawerReady);
@@ -234,25 +318,48 @@ namespace Game
             
             // Pick correct answer
             currentRoundData.correctOptionIndex = Random.Range(0, 4);
-            correctAnswerIndex.Value = currentRoundData.correctOptionIndex;
+            if (isLocalMode)
+            {
+                localCorrectAnswerIndex = currentRoundData.correctOptionIndex;
+            }
+            else
+            {
+                correctAnswerIndex.Value = currentRoundData.correctOptionIndex;
+            }
             
             Debug.Log($"GameController: Generated options, correct answer: {currentRoundData.options[currentRoundData.correctOptionIndex].text}");
         }
         
         public void SetState(GameState newState)
         {
-            if (!IsServer) return;
-            
-            Debug.Log($"GameController: State transition {currentState.Value} -> {newState}");
-            currentState.Value = newState;
+            if (isLocalMode)
+            {
+                Debug.Log($"GameController: State transition {localCurrentState} -> {newState}");
+                var oldState = localCurrentState;
+                localCurrentState = newState;
+                HandleStateChange(oldState, newState);
+            }
+            else
+            {
+                if (!IsServer) return;
+                
+                Debug.Log($"GameController: State transition {currentState.Value} -> {newState}");
+                currentState.Value = newState;
+            }
         }
         
         // Called when drawer clicks "Start Drawing"
         public void OnDrawerReadyToStart()
         {
-            if (currentState.Value == GameState.DrawerReady)
+            var currentGameState = isLocalMode ? localCurrentState : currentState.Value;
+            
+            if (currentGameState == GameState.DrawerReady)
             {
-                if (IsServer)
+                if (isLocalMode)
+                {
+                    SetState(GameState.Drawing);
+                }
+                else if (IsServer)
                 {
                     SetState(GameState.Drawing);
                 }
@@ -266,7 +373,11 @@ namespace Game
         // Called when drawing is submitted
         public void SubmitDrawing(byte[] drawingData)
         {
-            if (IsServer)
+            if (isLocalMode)
+            {
+                ProcessDrawingSubmission(drawingData);
+            }
+            else if (IsServer)
             {
                 ProcessDrawingSubmission(drawingData);
             }
@@ -284,8 +395,11 @@ namespace Game
                 Debug.Log($"GameController: Drawing submitted ({drawingData.Length} bytes)");
                 SetState(GameState.Guessing);
                 
-                // Send drawing to all clients
-                DistributeDrawingToClientsClientRpc(drawingData);
+                // Send drawing to all clients (only in multiplayer)
+                if (!isLocalMode)
+                {
+                    DistributeDrawingToClientsClientRpc(drawingData);
+                }
                 
                 // Trigger AI guess
                 TriggerAIGuess(drawingData);
@@ -321,15 +435,22 @@ namespace Game
         // Called when a player submits a guess
         public void SubmitGuess(int guessIndex)
         {
-            ulong playerId = IsServer ? 0 : NetworkManager.Singleton.LocalClientId;
-            
-            if (IsServer)
+            if (isLocalMode)
             {
-                ProcessGuess(playerId, guessIndex);
+                ProcessGuess(0, guessIndex);
             }
             else
             {
-                SubmitGuessServerRpc(playerId, guessIndex);
+                ulong playerId = IsServer ? 0 : NetworkManager.Singleton.LocalClientId;
+                
+                if (IsServer)
+                {
+                    ProcessGuess(playerId, guessIndex);
+                }
+                else
+                {
+                    SubmitGuessServerRpc(playerId, guessIndex);
+                }
             }
         }
         
@@ -348,7 +469,7 @@ namespace Game
         // Called when AI guess is received from backend
         public void SubmitAIGuess(int guessIndex)
         {
-            if (!IsServer) return;
+            if (!isLocalMode && !IsServer) return;
             
             if (currentRoundData != null)
             {
@@ -362,10 +483,11 @@ namespace Game
         {
             if (currentRoundData == null) return;
             
-            int expectedGuesses = gameMode.Value == GameMode.Local ? 1 : playerOrder.Count;
+            var mode = isLocalMode ? localGameMode : gameMode.Value;
+            int expectedGuesses = mode == GameMode.Local ? 1 : playerOrder.Count;
             
             // In multiplayer, drawer doesn't guess
-            if (gameMode.Value == GameMode.Multiplayer)
+            if (mode == GameMode.Multiplayer)
             {
                 expectedGuesses--;
             }
@@ -398,13 +520,29 @@ namespace Game
             // Update scores
             if (playerCorrect)
             {
-                playersScore.Value++;
+                if (isLocalMode)
+                {
+                    localPlayersScore++;
+                    HandleScoreChange(localPlayersScore - 1, localPlayersScore);
+                }
+                else
+                {
+                    playersScore.Value++;
+                }
                 Debug.Log("GameController: Players scored!");
             }
             
             if (aiCorrect)
             {
-                aiScore.Value++;
+                if (isLocalMode)
+                {
+                    localAiScore++;
+                    HandleScoreChange(localAiScore - 1, localAiScore);
+                }
+                else
+                {
+                    aiScore.Value++;
+                }
                 Debug.Log("GameController: AI scored!");
             }
             
@@ -423,7 +561,10 @@ namespace Game
             currentTurnIndex = (currentTurnIndex + 1) % playerOrder.Count;
             
             // Check if game is over
-            if (currentRound.Value >= totalRounds.Value)
+            var rounds = isLocalMode ? localCurrentRound : currentRound.Value;
+            var total = isLocalMode ? localTotalRounds : totalRounds.Value;
+            
+            if (rounds >= total)
             {
                 SetState(GameState.GameOver);
             }
@@ -435,11 +576,21 @@ namespace Game
         
         public void RestartGame()
         {
-            if (!IsServer) return;
+            if (!isLocalMode && !IsServer) return;
             
-            currentRound.Value = 0;
-            playersScore.Value = 0;
-            aiScore.Value = 0;
+            if (isLocalMode)
+            {
+                localCurrentRound = 0;
+                localPlayersScore = 0;
+                localAiScore = 0;
+            }
+            else
+            {
+                currentRound.Value = 0;
+                playersScore.Value = 0;
+                aiScore.Value = 0;
+            }
+            
             currentTurnIndex = 0;
             SetupPlayerOrder();
             StartNewRound();
@@ -448,13 +599,15 @@ namespace Game
         // Helper method to check if local player is drawer
         public bool IsLocalPlayerDrawer()
         {
-            if (gameMode.Value == GameMode.Local)
+            var mode = isLocalMode ? localGameMode : gameMode.Value;
+            
+            if (mode == GameMode.Local)
             {
                 return true; // Always drawer in local mode
             }
             else
             {
-                return NetworkManager.Singleton.LocalClientId == currentDrawerId.Value;
+                return NetworkManager.Singleton.LocalClientId == (isLocalMode ? localCurrentDrawerId : currentDrawerId.Value);
             }
         }
         
