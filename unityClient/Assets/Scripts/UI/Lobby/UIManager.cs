@@ -32,6 +32,12 @@ namespace UI.Lobby
             mainMenu.SetActive(false);
             joinMenu.SetActive(true);
         }
+        
+        public void OnStartLocalGame()
+        {
+            Debug.Log("Starting local game");
+            ConnectionManager.Instance.OnStartLocal();
+        }
 
         public void OnJoinButtonClicked()
         {

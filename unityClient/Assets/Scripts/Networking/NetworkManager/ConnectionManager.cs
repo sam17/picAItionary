@@ -87,6 +87,18 @@ public class ConnectionManager : MonoBehaviour
         }
     }
     
+    public void OnStartLocal()
+    {
+        Debug.Log("Starting local game (no networking)");
+        
+        // Set game mode to local
+        PlayerPrefs.SetInt("GameMode", 0); // 0 = Local, 1 = Multiplayer
+        PlayerPrefs.Save();
+        
+        // Go directly to game scene without any networking
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
+    }
+    
     public async Task<string> StartHostWithRelay(int maxConnections, string connectionType)
     {
         await UnityServices.InitializeAsync();

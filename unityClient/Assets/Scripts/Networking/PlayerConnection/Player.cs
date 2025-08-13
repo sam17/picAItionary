@@ -23,6 +23,9 @@ public class Player : NetworkBehaviour
     {
         base.OnNetworkSpawn();
         
+        // Make sure Player objects persist across scenes
+        DontDestroyOnLoad(gameObject);
+        
         if (!allPlayers.Contains(this))
         {
             allPlayers.Add(this);
@@ -33,7 +36,7 @@ public class Player : NetworkBehaviour
         
         if (IsOwner)
         {
-            var playerName = UI.Lobby.UIManager.Instance.GetPlayerName();
+            var playerName = UI.Lobby.UIManager.Instance?.GetPlayerName();
             if (string.IsNullOrEmpty(playerName))
             {
                 playerName = $"Player {OwnerClientId}";
@@ -68,6 +71,7 @@ public class Player : NetworkBehaviour
     
     private void UpdatePlayerList()
     {
+        // Only update UI if we're in the lobby scene
         if (UI.Lobby.UIManager.Instance != null)
         {
             UI.Lobby.UIManager.Instance.RefreshPlayerList();

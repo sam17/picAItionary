@@ -149,7 +149,7 @@ namespace UI.Lobby
             if (AreAllPlayersReady())
             {
                 Debug.Log("Starting game...");
-                StartGameServerRpc();
+                NetworkManager.Singleton.SceneManager.LoadScene("Game", UnityEngine.SceneManagement.LoadSceneMode.Single);
             }
             else
             {
@@ -191,11 +191,5 @@ namespace UI.Lobby
             return Player.AllPlayers.FirstOrDefault(p => p != null && p.OwnerClientId == localClientId);
         }
         
-        [ServerRpc(RequireOwnership = false)]
-        private void StartGameServerRpc()
-        {
-            Debug.Log("Game starting on server...");
-            NetworkManager.Singleton.SceneManager.LoadScene("Game", UnityEngine.SceneManagement.LoadSceneMode.Single);
-        }
     }
 }
