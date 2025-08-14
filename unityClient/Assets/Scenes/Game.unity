@@ -4479,8 +4479,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 512, y: 512}
+  m_AnchoredPosition: {x: 0, y: -73.78301}
+  m_SizeDelta: {x: 1080, y: 757.634}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &845710165
 MonoBehaviour:
@@ -9284,11 +9284,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   drawingImage: {fileID: 845710165}
-  textureWidth: 512
-  textureHeight: 512
+  textureWidth: 1080
+  textureHeight: 757
   brushSize: 5
   brushColor: {r: 0, g: 0, b: 0, a: 1}
   smoothLines: 1
+  debugMode: 0
 --- !u!1 &1683432836
 GameObject:
   m_ObjectHideFlags: 0

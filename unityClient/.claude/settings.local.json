@@ -7,7 +7,9 @@
       "Bash(powershell:*)",
       "Bash(dir)",
       "Bash(mkdir:*)",
-      "Bash(del \"D:\\Work\\Github\\picAItionary\\unityClient\\Assets\\Scripts\\UI\\CleanGameUI.cs\")"
+      "Bash(del \"D:\\Work\\Github\\picAItionary\\unityClient\\Assets\\Scripts\\UI\\CleanGameUI.cs\")",
+      "Bash(ls:*)",
+      "Bash(del:*)"
     ],
     "deny": []
   }
