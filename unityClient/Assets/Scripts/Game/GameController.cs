@@ -146,6 +146,14 @@ namespace Game
         
         private void Start()
         {
+            // Check if GameSpawnManager exists and get testLocal from it
+            GameSpawnManager spawnManager = FindObjectOfType<GameSpawnManager>();
+            if (spawnManager != null)
+            {
+                testLocal = spawnManager.IsTestLocal;
+                Debug.Log($"GameController: Got testLocal={testLocal} from GameSpawnManager");
+            }
+            
             // Only initialize local mode if:
             // 1. testLocal is true OR
             // 2. GameMode is set to local (0) AND NetworkManager is not running
@@ -163,6 +171,12 @@ namespace Game
                 Debug.Log("GameController: Network is active, waiting for OnNetworkSpawn");
                 // GameController will be spawned by GameSpawnManager and OnNetworkSpawn will be called
             }
+        }
+        
+        public void SetTestLocalMode(bool value)
+        {
+            testLocal = value;
+            Debug.Log($"GameController: SetTestLocalMode called with {value}");
         }
         
         private void InitializeLocalMode()

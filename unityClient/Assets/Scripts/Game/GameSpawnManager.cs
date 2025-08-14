@@ -6,11 +6,16 @@ namespace Game
 {
     public class GameSpawnManager : MonoBehaviour
     {
+        [Header("Game Settings")]
+        [SerializeField] private bool isTestLocal = false;
+        
         [Header("Prefabs to Spawn")]
         [SerializeField] private GameObject gameControllerPrefab;
         
         private static GameSpawnManager instance;
         private bool hasSpawnedGameController = false;
+        
+        public bool IsTestLocal => isTestLocal;
         
         private void Awake()
         {
@@ -76,6 +81,14 @@ namespace Game
             // Instantiate the GameController
             GameObject gameControllerInstance = Instantiate(gameControllerPrefab);
             gameControllerInstance.name = "GameController";
+            
+            // Pass the test local setting to the GameController
+            GameController gameController = gameControllerInstance.GetComponent<GameController>();
+            if (gameController != null)
+            {
+                gameController.SetTestLocalMode(isTestLocal);
+                Debug.Log($"GameSpawnManager: Set GameController testLocal to {isTestLocal}");
+            }
             
             // Get the NetworkObject component
             NetworkObject networkObject = gameControllerInstance.GetComponent<NetworkObject>();
