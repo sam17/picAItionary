@@ -184,7 +184,6 @@ namespace UI
                 if (guessing != null && gameController.CurrentRoundData != null)
                 {
                     var drawingData = gameController.CurrentRoundData.drawingData;
-                    Debug.Log($"GameUIManager: Setting up GuessingScreen with drawing data: {(drawingData != null ? drawingData.Length + " bytes" : "NULL")}");
                     
                     if (drawingData == null || drawingData.Length == 0)
                     {

@@ -35,31 +35,38 @@ namespace UI
                 clearButton.onClick.AddListener(OnClearDrawing);
             }
         }
-        
+
         public void Setup(List<DrawingOption> options, int correctIndex)
         {
             correctOptionIndex = correctIndex;
-            
+
+            // Clear the canvas for a fresh start
+            if (drawingCanvas != null)
+            {
+                drawingCanvas.ClearCanvas();
+            }
+
             // Validate we have enough text elements
             if (optionTexts.Count < options.Count)
             {
-                Debug.LogError($"DrawingScreen: Not enough option text elements! Have {optionTexts.Count}, need {options.Count}");
+                Debug.LogError(
+                    $"DrawingScreen: Not enough option text elements! Have {optionTexts.Count}, need {options.Count}");
                 return;
             }
-            
+
             // Update the text elements with options
             for (int i = 0; i < options.Count && i < optionTexts.Count; i++)
             {
                 if (optionTexts[i] != null)
                 {
                     optionTexts[i].text = options[i].text;
-                    
+
                     // Highlight the correct option
                     if (i == correctIndex)
                     {
                         optionTexts[i].color = highlightColor;
                         optionTexts[i].fontStyle = FontStyles.Bold;
-                        
+
                         // Optionally add a marker
                         optionTexts[i].text = "→ " + options[i].text + " ←";
                     }
@@ -70,7 +77,7 @@ namespace UI
                     }
                 }
             }
-            
+
             // Hide any extra text elements
             for (int i = options.Count; i < optionTexts.Count; i++)
             {
@@ -79,10 +86,8 @@ namespace UI
                     optionTexts[i].gameObject.SetActive(false);
                 }
             }
-            
-            Debug.Log($"DrawingScreen: Setup with {options.Count} options, correct: {options[correctIndex].text}");
         }
-        
+
         private void OnSubmitDrawing()
         {
             if (drawingCanvas == null)
@@ -92,7 +97,6 @@ namespace UI
             }
             
             currentDrawingData = drawingCanvas.GetDrawingData();
-            Debug.Log($"DrawingScreen: Submitting drawing ({currentDrawingData.Length} bytes)");
             
             // Submit to game controller
             if (GameController.Instance != null)
@@ -108,8 +112,6 @@ namespace UI
             {
                 drawingCanvas.ClearCanvas();
             }
-            
-            Debug.Log("DrawingScreen: Canvas cleared");
         }
         
         private void OnDestroy()

@@ -51,16 +51,12 @@ namespace Drawing
             // Clear to background color
             ClearCanvas();
             
-            Debug.Log($"DrawingDisplayCanvas: Initialized read-only display with {textureWidth}x{textureHeight} texture");
         }
         
         public void LoadDrawingData(byte[] data)
         {
-            Debug.Log($"DrawingDisplayCanvas.LoadDrawingData called with {data?.Length ?? 0} bytes");
-            
             if (data == null || data.Length == 0)
             {
-                Debug.LogWarning("DrawingDisplayCanvas: No drawing data to load");
                 ClearCanvas();
                 return;
             }
@@ -69,7 +65,6 @@ namespace Drawing
             try
             {
                 loadedDrawingData = DrawingData.FromByteArray(data);
-                Debug.Log($"DrawingDisplayCanvas: Parsed DrawingData successfully");
             }
             catch (System.Exception e)
             {
@@ -80,12 +75,9 @@ namespace Drawing
             
             if (loadedDrawingData == null || loadedDrawingData.strokes == null)
             {
-                Debug.LogWarning("DrawingDisplayCanvas: Invalid drawing data after parsing");
                 ClearCanvas();
                 return;
             }
-            
-            Debug.Log($"DrawingDisplayCanvas: Loading drawing with {loadedDrawingData.strokes.Count} strokes, texture size: {textureWidth}x{textureHeight}");
             
             // Create pixel array
             Color[] pixels = new Color[textureWidth * textureHeight];
@@ -97,21 +89,14 @@ namespace Drawing
             }
             
             // Draw all strokes
-            int strokeCount = 0;
             foreach (var stroke in loadedDrawingData.strokes)
             {
                 DrawStroke(pixels, stroke);
-                strokeCount++;
-                Debug.Log($"DrawingDisplayCanvas: Drew stroke {strokeCount} with {stroke.points.Count} points, color: {stroke.color}");
             }
             
             // Apply to texture
             displayTexture.SetPixels(pixels);
             displayTexture.Apply();
-            
-            // Verify the texture was applied
-            Debug.Log($"DrawingDisplayCanvas: Applied pixels to texture. Texture: {displayTexture}, Size: {displayTexture.width}x{displayTexture.height}");
-            Debug.Log($"DrawingDisplayCanvas: RawImage texture: {displayImage?.texture}, Enabled: {displayImage?.enabled}, GameObject active: {displayImage?.gameObject.activeSelf}");
         }
         
         private void DrawStroke(Color[] pixels, Stroke stroke)

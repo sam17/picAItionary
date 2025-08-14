@@ -19,9 +19,6 @@ namespace Drawing
         [SerializeField] private Color brushColor = Color.black;
         [SerializeField] private bool smoothLines = true;
         
-        [Header("Debug")]
-        [SerializeField] private bool debugMode = false;
-        
         private Texture2D drawingTexture;
         private Color[] cleanColors;
         private Color[] currentPixels; // Working pixel buffer
@@ -92,8 +89,6 @@ namespace Drawing
             drawingData = new DrawingData();
             drawingData.width = textureWidth;
             drawingData.height = textureHeight;
-            
-            Debug.Log($"UIDrawingCanvas: Initialized with {textureWidth}x{textureHeight} texture");
         }
         
         public void OnPointerDown(PointerEventData eventData)
@@ -175,12 +170,6 @@ namespace Drawing
             float y = normalizedY * textureHeight;
             
             texturePoint = new Vector2(x, y);
-            
-            if (debugMode)
-            {
-                Debug.Log($"UIDrawingCanvas: Screen: {screenPosition}, Local: {localPoint}, Rect: {rect}, Normalized: ({normalizedX:F2}, {normalizedY:F2}), Texture: {texturePoint}");
-            }
-            
             return true;
         }
         
@@ -202,8 +191,6 @@ namespace Drawing
             // Draw initial point
             DrawBrush(texturePoint.x, texturePoint.y);
             lastDrawPoint = texturePoint;
-            
-            Debug.Log($"UIDrawingCanvas: Started stroke at {texturePoint}");
         }
         
         private void AddPointToStroke(Vector2 texturePoint)
@@ -243,7 +230,6 @@ namespace Drawing
             if (currentStroke.points.Count > 1)
             {
                 drawingData.strokes.Add(currentStroke);
-                Debug.Log($"UIDrawingCanvas: Ended stroke with {currentStroke.points.Count} points");
             }
             
             currentStroke = null;
@@ -325,8 +311,6 @@ namespace Drawing
             drawingData = new DrawingData();
             drawingData.width = textureWidth;
             drawingData.height = textureHeight;
-            
-            Debug.Log("UIDrawingCanvas: Canvas cleared");
         }
         
         public void LoadDrawingData(byte[] data)

@@ -52,7 +52,6 @@ namespace UI
             
             // Load the drawing data
             drawingDisplay.LoadDrawingData(drawingData);
-            Debug.Log($"GuessingScreen: Loaded {drawingData.Length} bytes into drawing display");
             
             // Validate we have enough buttons
             if (optionButtons.Count < options.Count)
