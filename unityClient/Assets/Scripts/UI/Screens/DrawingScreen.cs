@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Drawing;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -9,7 +10,7 @@ namespace UI
     public class DrawingScreen : MonoBehaviour
     {
         [Header("UI Elements")]
-        [SerializeField] private GameObject drawingCanvas; // The actual drawing area
+        [SerializeField] private UIDrawingCanvas drawingCanvas; // The actual drawing area
         [SerializeField] private Button submitButton;
         [SerializeField] private Button clearButton;
         [SerializeField] private TextMeshProUGUI timerText;
@@ -84,18 +85,13 @@ namespace UI
         
         private void OnSubmitDrawing()
         {
-            // Get drawing data from canvas
-            var drawingComponent = drawingCanvas?.GetComponent<IDrawingCanvas>();
-            if (drawingComponent != null)
+            if (drawingCanvas == null)
             {
-                currentDrawingData = drawingComponent.GetDrawingData();
-            }
-            else
-            {
-                // Create dummy data for testing
-                currentDrawingData = new byte[] { 1, 2, 3, 4, 5 };
+                Debug.LogError("DrawingScreen: drawingCanvas not assigned in inspector!");
+                return;
             }
             
+            currentDrawingData = drawingCanvas.GetDrawingData();
             Debug.Log($"DrawingScreen: Submitting drawing ({currentDrawingData.Length} bytes)");
             
             // Submit to game controller
@@ -108,10 +104,9 @@ namespace UI
         private void OnClearDrawing()
         {
             // Clear the canvas
-            var drawingComponent = drawingCanvas?.GetComponent<IDrawingCanvas>();
-            if (drawingComponent != null)
+            if (drawingCanvas != null)
             {
-                drawingComponent.ClearCanvas();
+                drawingCanvas.ClearCanvas();
             }
             
             Debug.Log("DrawingScreen: Canvas cleared");

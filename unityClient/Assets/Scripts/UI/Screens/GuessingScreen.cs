@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Drawing;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -9,7 +10,7 @@ namespace UI
     public class GuessingScreen : MonoBehaviour
     {
         [Header("UI Elements")]
-        [SerializeField] private GameObject drawingDisplay; // Where the drawing is shown
+        [SerializeField] private DrawingDisplayCanvas drawingDisplay; // Component to display the drawing
         [SerializeField] private TextMeshProUGUI instructionText;
         [SerializeField] private TextMeshProUGUI timerText;
         
@@ -37,11 +38,21 @@ namespace UI
             hasSubmitted = false;
             
             // Load the drawing
-            var drawingComponent = drawingDisplay?.GetComponent<IDrawingCanvas>();
-            if (drawingComponent != null && drawingData != null)
+            if (drawingDisplay == null)
             {
-                drawingComponent.LoadDrawingData(drawingData);
+                Debug.LogError("GuessingScreen: drawingDisplay not assigned in inspector!");
+                return;
             }
+            
+            if (drawingData == null || drawingData.Length == 0)
+            {
+                Debug.LogError("GuessingScreen: No drawing data provided!");
+                return;
+            }
+            
+            // Load the drawing data
+            drawingDisplay.LoadDrawingData(drawingData);
+            Debug.Log($"GuessingScreen: Loaded {drawingData.Length} bytes into drawing display");
             
             // Validate we have enough buttons
             if (optionButtons.Count < options.Count)

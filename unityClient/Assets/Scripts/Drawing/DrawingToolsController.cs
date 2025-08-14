@@ -61,12 +61,8 @@ namespace Drawing
         {
             if (drawingCanvas == null)
             {
-                drawingCanvas = FindObjectOfType<UIDrawingCanvas>();
-                if (drawingCanvas == null)
-                {
-                    Debug.LogError("DrawingToolsController: No UIDrawingCanvas found!");
-                    return;
-                }
+                Debug.LogError("DrawingToolsController: drawingCanvas not assigned in inspector!");
+                return;
             }
             
             // Brush size slider - adjusted for pixel-based drawing

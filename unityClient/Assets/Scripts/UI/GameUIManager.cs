@@ -183,8 +183,19 @@ namespace UI
                 var guessing = guessingScreen?.GetComponent<GuessingScreen>();
                 if (guessing != null && gameController.CurrentRoundData != null)
                 {
-                    guessing.Setup(gameController.CurrentRoundData.drawingData,
-                                  gameController.CurrentRoundData.options);
+                    var drawingData = gameController.CurrentRoundData.drawingData;
+                    Debug.Log($"GameUIManager: Setting up GuessingScreen with drawing data: {(drawingData != null ? drawingData.Length + " bytes" : "NULL")}");
+                    
+                    if (drawingData == null || drawingData.Length == 0)
+                    {
+                        Debug.LogError("GameUIManager: WARNING - No drawing data in CurrentRoundData!");
+                    }
+                    
+                    guessing.Setup(drawingData, gameController.CurrentRoundData.options);
+                }
+                else
+                {
+                    Debug.LogError($"GameUIManager: Cannot setup guessing screen - guessing={guessing != null}, roundData={gameController.CurrentRoundData != null}");
                 }
             }
             else
