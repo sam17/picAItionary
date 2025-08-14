@@ -24,10 +24,14 @@ namespace Drawing
         
         private Texture2D drawingTexture;
         private Color[] cleanColors;
+        private Color[] currentPixels; // Working pixel buffer
         private DrawingData drawingData;
         private Stroke currentStroke;
         private bool isDrawing = false;
         private Vector2 lastDrawPoint;
+        private bool needsApply = false;
+        private float lastApplyTime = 0f;
+        private const float APPLY_INTERVAL = 0.016f; // Apply at ~60fps max
         
         private RectTransform rectTransform;
         private Canvas parentCanvas;
@@ -35,6 +39,15 @@ namespace Drawing
         private void Awake()
         {
             Initialize();
+        }
+        
+        private void LateUpdate()
+        {
+            // Apply any pending pixel changes at the end of frame
+            if (needsApply && Time.time - lastApplyTime > APPLY_INTERVAL)
+            {
+                ApplyPixelBuffer();
+            }
         }
         
         private void Initialize()
@@ -63,9 +76,11 @@ namespace Drawing
             
             // Initialize with white background
             cleanColors = new Color[textureWidth * textureHeight];
+            currentPixels = new Color[textureWidth * textureHeight];
             for (int i = 0; i < cleanColors.Length; i++)
             {
                 cleanColors[i] = Color.white;
+                currentPixels[i] = Color.white;
             }
             drawingTexture.SetPixels(cleanColors);
             drawingTexture.Apply();
@@ -219,6 +234,12 @@ namespace Drawing
             
             isDrawing = false;
             
+            // Make sure to apply any pending changes
+            if (needsApply)
+            {
+                ApplyPixelBuffer();
+            }
+            
             if (currentStroke.points.Count > 1)
             {
                 drawingData.strokes.Add(currentStroke);
@@ -228,28 +249,45 @@ namespace Drawing
             currentStroke = null;
         }
         
-        private void DrawBrush(float x, float y)
+        private void DrawBrush(float x, float y, bool applyImmediately = true)
         {
             int brushRadius = Mathf.RoundToInt(brushSize);
+            int centerX = Mathf.RoundToInt(x);
+            int centerY = Mathf.RoundToInt(y);
             
+            // Draw to pixel buffer instead of texture directly
             for (int i = -brushRadius; i <= brushRadius; i++)
             {
                 for (int j = -brushRadius; j <= brushRadius; j++)
                 {
                     if (i * i + j * j <= brushRadius * brushRadius)
                     {
-                        int pixelX = Mathf.RoundToInt(x) + i;
-                        int pixelY = Mathf.RoundToInt(y) + j;
+                        int pixelX = centerX + i;
+                        int pixelY = centerY + j;
                         
                         if (pixelX >= 0 && pixelX < textureWidth && pixelY >= 0 && pixelY < textureHeight)
                         {
-                            drawingTexture.SetPixel(pixelX, pixelY, brushColor);
+                            int index = pixelY * textureWidth + pixelX;
+                            currentPixels[index] = brushColor;
                         }
                     }
                 }
             }
             
+            needsApply = true;
+            
+            if (applyImmediately && Time.time - lastApplyTime > APPLY_INTERVAL)
+            {
+                ApplyPixelBuffer();
+            }
+        }
+        
+        private void ApplyPixelBuffer()
+        {
+            drawingTexture.SetPixels(currentPixels);
             drawingTexture.Apply();
+            lastApplyTime = Time.time;
+            needsApply = false;
         }
         
         private void DrawLine(Vector2 start, Vector2 end)
@@ -257,11 +295,18 @@ namespace Drawing
             float distance = Vector2.Distance(start, end);
             int steps = Mathf.Max(2, Mathf.RoundToInt(distance));
             
+            // Draw all points without applying
             for (int i = 0; i <= steps; i++)
             {
                 float t = i / (float)steps;
                 Vector2 point = Vector2.Lerp(start, end, t);
-                DrawBrush(point.x, point.y);
+                DrawBrush(point.x, point.y, false); // Don't apply yet
+            }
+            
+            // Apply at controlled rate
+            if (Time.time - lastApplyTime > APPLY_INTERVAL)
+            {
+                ApplyPixelBuffer();
             }
         }
         
@@ -272,6 +317,8 @@ namespace Drawing
         
         public void ClearCanvas()
         {
+            // Reset both buffers
+            System.Array.Copy(cleanColors, currentPixels, cleanColors.Length);
             drawingTexture.SetPixels(cleanColors);
             drawingTexture.Apply();
             
