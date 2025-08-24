@@ -40,15 +40,13 @@ namespace UI
         public void Setup(List<DrawingOption> options, int correctIndex)
         {
             correctOptionIndex = correctIndex;
-            hasSubmitted = false; // Reset submission flag
+            hasSubmitted = false;
 
-            // Clear the canvas for a fresh start
             if (drawingCanvas != null)
             {
                 drawingCanvas.ClearCanvas();
             }
 
-            // Validate we have enough text elements
             if (optionTexts.Count < options.Count)
             {
                 Debug.LogError(
@@ -56,20 +54,16 @@ namespace UI
                 return;
             }
 
-            // Update the text elements with options
             for (int i = 0; i < options.Count && i < optionTexts.Count; i++)
             {
                 if (optionTexts[i] != null)
                 {
                     optionTexts[i].text = options[i].text;
 
-                    // Highlight the correct option
                     if (i == correctIndex)
                     {
                         optionTexts[i].color = highlightColor;
                         optionTexts[i].fontStyle = FontStyles.Bold;
-
-                        // Optionally add a marker
                         optionTexts[i].text = "→ " + options[i].text + " ←";
                     }
                     else
@@ -80,7 +74,6 @@ namespace UI
                 }
             }
 
-            // Hide any extra text elements
             for (int i = options.Count; i < optionTexts.Count; i++)
             {
                 if (optionTexts[i] != null)
@@ -92,7 +85,6 @@ namespace UI
 
         private void Update()
         {
-            // Update timer display using GameController's centralized timer
             UpdateTimerDisplay();
         }
         
@@ -104,7 +96,6 @@ namespace UI
                 int seconds = Mathf.CeilToInt(timeRemaining);
                 timerText.text = $"Time: {seconds:00}";
                 
-                // Change color when time is running out
                 if (timeRemaining <= 10f)
                 {
                     timerText.color = Color.red;
@@ -124,18 +115,13 @@ namespace UI
         {
             if (!hasSubmitted)
             {
-                Debug.Log("DrawingScreen: Force submitting drawing due to timer expiration");
                 OnSubmitDrawing();
             }
         }
         
         private void OnSubmitDrawing()
         {
-            if (hasSubmitted)
-            {
-                Debug.Log("DrawingScreen: Already submitted, ignoring");
-                return;
-            }
+            if (hasSubmitted) return;
             
             if (drawingCanvas == null)
             {
@@ -145,9 +131,7 @@ namespace UI
             
             hasSubmitted = true;
             currentDrawingData = drawingCanvas.GetDrawingData();
-            Debug.Log($"DrawingScreen: Submitting drawing with {currentDrawingData?.Length ?? 0} bytes");
             
-            // Submit to game controller
             if (GameController.Instance != null)
             {
                 GameController.Instance.SubmitDrawing(currentDrawingData);
@@ -156,7 +140,6 @@ namespace UI
         
         private void OnClearDrawing()
         {
-            // Clear the canvas
             if (drawingCanvas != null)
             {
                 drawingCanvas.ClearCanvas();
@@ -177,7 +160,6 @@ namespace UI
         }
     }
     
-    // Interface for drawing canvas implementation
     public interface IDrawingCanvas
     {
         byte[] GetDrawingData();
