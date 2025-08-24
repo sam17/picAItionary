@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(touch:*)",
+      "Bash(powershell:*)",
+      "Bash(dir)",
+      "Bash(mkdir:*)",
+      "Bash(del \"D:\\Work\\Github\\picAItionary\\unityClient\\Assets\\Scripts\\UI\\CleanGameUI.cs\")",
+      "Bash(ls:*)",
+      "Bash(del:*)",
+      "Bash(dir:*)"
+    ],
+    "deny": []
+  }
+}
