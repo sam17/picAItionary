@@ -57,8 +57,8 @@ API_KEY=your-api-key-for-unity-client
 ### 2. Install Dependencies
 
 ```bash
-# Using Poetry (recommended)
-poetry install
+# Using uv (recommended)
+uv sync
 
 # Or using pip
 pip install -r requirements.txt
@@ -67,14 +67,71 @@ pip install -r requirements.txt
 ### 3. Run Development Server
 
 ```bash
-# Using Poetry
-poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Using uv
+uv run python -m app.main
 
-# Or using Python
-python -m app.main
+# Or using uvicorn directly
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000` with interactive docs at `http://localhost:8000/docs`.
+
+## 🐳 Docker Deployment
+
+### Local Development with Docker
+
+```bash
+# Build and start development environment
+docker-compose up --build
+
+# Or run in background
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f backend-v2
+
+# Stop services
+docker-compose down
+```
+
+### Production Deployment
+
+```bash
+# Copy production environment template
+cp .env.example .env.production
+
+# Edit with production credentials
+vim .env.production
+
+# Deploy to production
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Check health
+curl http://localhost/api/v2/health
+```
+
+### Automated Deployment Scripts
+
+```bash
+# Development deployment with database seeding
+./scripts/deploy.sh development
+
+# Production deployment
+./scripts/deploy.sh production
+
+# Health check
+./scripts/health-check.sh http://localhost:8000 your-api-key
+```
+
+### Database Setup
+
+```bash
+# Initialize database with default decks
+docker-compose exec backend-v2 uv run python scripts/seed_decks.py
+
+# Clear existing data (if needed)
+docker-compose exec backend-v2 uv run python scripts/clear_decks.py
+```
 
 ## API Endpoints
 

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # PicAictionary Backend V2
+  backend-v2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: picaictionary-backend-v2
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for development hot reload
+      - .:/app
+      - /app/uv.lock  # Don't override the lock file
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - picaictionary-network
+
+  # Optional: Local database for development (if not using Supabase)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: picaictionary-db
+  #   environment:
+  #     POSTGRES_DB: picaictionary
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - picaictionary-network
+
+  # Optional: Redis for caching (future enhancement)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: picaictionary-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - picaictionary-network
+
+networks:
+  picaictionary-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:

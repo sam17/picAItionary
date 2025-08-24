@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Production PicAictionary Backend V2
+  backend-v2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: picaictionary-backend-v2-prod
+    ports:
+      - "80:8000"  # Map to port 80 for production
+    environment:
+      - ENVIRONMENT=production
+    env_file:
+      - .env.production
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - picaictionary-network
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Production logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Nginx reverse proxy for production
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: picaictionary-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - backend-v2
+  #   networks:
+  #     - picaictionary-network
+
+networks:
+  picaictionary-network:
+    driver: bridge
