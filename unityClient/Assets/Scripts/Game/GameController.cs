@@ -214,10 +214,8 @@ namespace Game
         
         private void Update()
         {
-            // Only server or local mode should check for timer expiration
             if (!isLocalMode && !IsServer) return;
             
-            // Check for timer expiration
             if (CurrentState == GameState.Drawing || CurrentState == GameState.Guessing)
             {
                 float timeRemaining = GetTimeRemaining();
@@ -235,20 +233,14 @@ namespace Game
             switch (CurrentState)
             {
                 case GameState.Drawing:
-                    Debug.Log("GameController: Drawing timer expired, forcing submission");
-                    // Force submit the drawing if nothing was submitted yet
                     if (currentRoundData != null && currentRoundData.drawingData == null)
                     {
-                        // Try to get the current drawing from the DrawingScreen
                         ForceSubmitCurrentDrawing();
                     }
                     break;
                     
                 case GameState.Guessing:
-                    Debug.Log("GameController: Guessing timer expired, processing results");
-                    // Auto-submit random guesses for players who haven't guessed
                     AutoSubmitMissingGuesses();
-                    // Process results even if not everyone has guessed
                     ProcessResults();
                     break;
             }
@@ -256,27 +248,20 @@ namespace Game
         
         private void ForceSubmitCurrentDrawing()
         {
-            // Only force submit if we are the drawer (or in local mode)
             if (isLocalMode || IsLocalPlayerDrawer())
             {
-                // Find the DrawingScreen and get its current drawing data
                 var drawingScreen = FindObjectOfType<UI.DrawingScreen>();
                 if (drawingScreen != null && drawingScreen.gameObject.activeInHierarchy)
                 {
-                    // Call a method to get the drawing data
                     drawingScreen.ForceSubmitDrawing();
                 }
                 else
                 {
-                    Debug.LogWarning("GameController: DrawingScreen not found or not active, submitting empty drawing");
                     ProcessDrawingSubmission(new byte[0]);
                 }
             }
             else
             {
-                // For non-drawer clients in multiplayer, just submit empty data
-                // The server should handle the actual drawing submission
-                Debug.Log("GameController: Not the drawer, skipping force submit");
                 if (IsServer)
                 {
                     ProcessDrawingSubmission(new byte[0]);
@@ -290,40 +275,31 @@ namespace Game
             
             var mode = isLocalMode ? localGameMode : gameMode.Value;
             
-            // In local mode, check if player has guessed
             if (mode == GameMode.Local)
             {
                 if (!currentRoundData.playerGuesses.ContainsKey(0))
                 {
-                    // Auto-submit a random guess
                     int randomGuess = Random.Range(0, currentRoundData.options.Count);
                     currentRoundData.playerGuesses[0] = randomGuess;
-                    Debug.Log($"GameController: Auto-submitted random guess {randomGuess} for local player");
                 }
             }
             else
             {
-                // In multiplayer, check all non-drawer players
                 foreach (var playerId in playerOrder)
                 {
-                    // Skip the drawer
                     if (playerId == currentRoundData.drawerId) continue;
                     
                     if (!currentRoundData.playerGuesses.ContainsKey(playerId))
                     {
-                        // Auto-submit a random guess
                         int randomGuess = Random.Range(0, currentRoundData.options.Count);
                         currentRoundData.playerGuesses[playerId] = randomGuess;
-                        Debug.Log($"GameController: Auto-submitted random guess {randomGuess} for player {playerId}");
                     }
                 }
             }
             
-            // Make sure AI has also guessed
             if (currentRoundData.aiGuess < 0)
             {
                 currentRoundData.aiGuess = Random.Range(0, currentRoundData.options.Count);
-                Debug.Log($"GameController: Auto-submitted random guess {currentRoundData.aiGuess} for AI");
             }
         }
         
@@ -610,14 +586,12 @@ namespace Game
                 var oldState = localCurrentState;
                 localCurrentState = newState;
                 
-                // Record state start time for timer
                 if (newState == GameState.Drawing || newState == GameState.Guessing)
                 {
                     localStateStartTime = Time.time;
-                    timerExpiredForCurrentState = false; // Reset timer expiration flag
+                    timerExpiredForCurrentState = false;
                 }
                 
-                // Make sure to invoke the event for local mode
                 HandleStateChange(oldState, newState);
             }
             else
@@ -627,11 +601,10 @@ namespace Game
                 Debug.Log($"GameController: State transition {currentState.Value} -> {newState} (Network Mode)");
                 currentState.Value = newState;
                 
-                // Record state start time for timer (server authoritative)
                 if (newState == GameState.Drawing || newState == GameState.Guessing)
                 {
                     stateStartTime.Value = Time.time;
-                    timerExpiredForCurrentState = false; // Reset timer expiration flag
+                    timerExpiredForCurrentState = false;
                 }
             }
         }
