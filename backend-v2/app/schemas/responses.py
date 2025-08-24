@@ -19,6 +19,12 @@ class DrawingAnalysisResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="AI confidence score")
     reasoning: Optional[str] = Field(None, description="AI's reasoning")
     
+    # Prompt information
+    options: List[str] = Field(..., description="Options that were analyzed")
+    correct_index: Optional[int] = Field(None, description="Index of correct answer (if generated)")
+    correct_option: Optional[str] = Field(None, description="Correct answer text (if generated)")
+    deck_ids_used: Optional[List[int]] = Field(None, description="Deck IDs used for prompt generation")
+    
     # Metadata
     model_used: str = Field(..., description="AI model used")
     provider: AIProvider = Field(..., description="AI provider used")
@@ -86,3 +92,61 @@ class HealthCheckResponse(BaseModel):
     timestamp: datetime = Field(..., description="Check timestamp")
     database_connected: bool = Field(..., description="Database connection status")
     ai_providers_available: Dict[str, bool] = Field(..., description="AI provider availability")
+
+
+# Deck Management Responses
+
+class DeckResponse(BaseModel):
+    """Response for deck information"""
+    id: int = Field(..., description="Deck ID")
+    name: str = Field(..., description="Deck name")
+    description: Optional[str] = Field(None, description="Deck description")
+    category: Optional[str] = Field(None, description="Deck category")
+    difficulty: str = Field(..., description="Deck difficulty level")
+    is_active: bool = Field(..., description="Whether deck is active")
+    is_public: bool = Field(..., description="Whether deck is public")
+    created_by: Optional[str] = Field(None, description="Creator user ID")
+    total_items: int = Field(..., description="Number of items in deck")
+    usage_count: int = Field(..., description="Times this deck has been used")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+
+
+class DeckItemResponse(BaseModel):
+    """Response for deck item information"""
+    id: int = Field(..., description="Item ID")
+    deck_id: int = Field(..., description="Parent deck ID")
+    prompt: str = Field(..., description="Drawing prompt text")
+    difficulty: str = Field(..., description="Item difficulty level")
+    usage_count: int = Field(..., description="Times this item has been used")
+    avg_human_correct_rate: float = Field(..., description="Human success rate")
+    avg_ai_correct_rate: float = Field(..., description="AI success rate")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+
+class DeckListResponse(BaseModel):
+    """Response for list of decks"""
+    decks: List[DeckResponse] = Field(..., description="List of decks")
+    total_count: int = Field(..., description="Total number of decks")
+
+
+class DeckWithItemsResponse(BaseModel):
+    """Response for deck with all items"""
+    deck: DeckResponse = Field(..., description="Deck information")
+    items: List[DeckItemResponse] = Field(..., description="Deck items")
+
+
+class RandomPromptsResponse(BaseModel):
+    """Response for random prompts selection"""
+    success: bool = Field(..., description="Whether selection was successful")
+    prompts: List[str] = Field(..., description="Selected prompts")
+    correct_index: int = Field(..., description="Index of correct answer")
+    correct_prompt: str = Field(..., description="Correct answer text")
+    deck_ids_used: List[int] = Field(..., description="Deck IDs that prompts came from")
+    message: Optional[str] = Field(None, description="Status message")
+
+
+class DeckStatsResponse(BaseModel):
+    """Response for deck statistics"""
+    deck: DeckResponse = Field(..., description="Deck information")
+    statistics: Dict[str, Any] = Field(..., description="Detailed statistics")

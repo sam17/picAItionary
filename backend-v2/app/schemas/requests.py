@@ -13,7 +13,17 @@ class CreateGameRequest(BaseModel):
 class DrawingAnalysisRequest(BaseModel):
     """Request to analyze a drawing"""
     image_data: str = Field(..., description="Base64 encoded image data")
-    options: List[str] = Field(..., min_items=2, max_items=10, description="Available options")
+    
+    # Option 1: Explicit options (backward compatibility)
+    options: Optional[List[str]] = Field(None, min_items=2, max_items=10, description="Explicit options (optional)")
+    
+    # Option 2: Deck-based selection (new approach)
+    deck_ids: Optional[List[int]] = Field(None, description="Deck IDs to select prompts from")
+    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$", description="Filter by difficulty")
+    prompt_count: int = Field(4, ge=2, le=10, description="Number of prompts to generate")
+    exclude_recent: Optional[List[str]] = Field(None, description="Recently used prompts to exclude")
+    
+    # AI settings
     prompt_version: str = Field("v1", description="Prompt version to use")
     ai_provider: Optional[AIProvider] = Field(None, description="AI provider override")
     model_override: Optional[str] = Field(None, description="Model override")
@@ -51,3 +61,43 @@ class AppAttestationRequest(BaseModel):
     """Request with app attestation"""
     integrity_token: str = Field(..., description="Platform integrity token")
     request_data: dict = Field(..., description="Actual request data")
+
+
+# Deck Management Requests
+
+class CreateDeckRequest(BaseModel):
+    """Request to create a new deck"""
+    name: str = Field(..., min_length=1, max_length=100, description="Deck name")
+    description: Optional[str] = Field(None, max_length=500, description="Deck description")
+    category: Optional[str] = Field("custom", description="Deck category")
+    difficulty: str = Field("medium", pattern="^(easy|medium|hard)$", description="Deck difficulty")
+    is_public: bool = Field(True, description="Whether deck is publicly visible")
+    created_by: Optional[str] = Field(None, description="Creator user ID")
+    items: Optional[List[str]] = Field(None, description="Initial deck items")
+
+
+class UpdateDeckRequest(BaseModel):
+    """Request to update a deck"""
+    name: Optional[str] = Field(None, min_length=1, max_length=100, description="New deck name")
+    description: Optional[str] = Field(None, max_length=500, description="New deck description")
+    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$", description="New difficulty")
+    is_active: Optional[bool] = Field(None, description="Whether deck is active")
+    is_public: Optional[bool] = Field(None, description="Whether deck is public")
+
+
+class DeckSelectionRequest(BaseModel):
+    """Request to get prompts from specific decks"""
+    count: int = Field(4, ge=2, le=10, description="Number of prompts to return")
+    deck_ids: Optional[List[int]] = Field(None, description="Specific deck IDs to use")
+    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$", description="Filter by difficulty")
+    exclude_recent: Optional[List[str]] = Field(None, description="Recently used prompts to exclude")
+
+
+class AddItemsToDeckRequest(BaseModel):
+    """Request to add items to a deck"""
+    items: List[str] = Field(..., min_items=1, max_items=50, description="Items to add")
+
+
+class RemoveItemsFromDeckRequest(BaseModel):
+    """Request to remove items from a deck"""
+    item_ids: List[int] = Field(..., min_items=1, description="Item IDs to remove")

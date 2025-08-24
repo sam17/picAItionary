@@ -190,6 +190,54 @@ class AIAnalysisLog(Base):
     raw_response = Column(JSON, nullable=True)
 
 
+class Deck(Base):
+    """Drawing prompt deck model"""
+    __tablename__ = 'decks'
+    
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Deck metadata
+    name = Column(String, nullable=False)  # "Animals", "Characters", "Actions"
+    description = Column(Text, nullable=True)  # Brief description of the deck
+    category = Column(String, nullable=True)  # "default", "community", "custom"
+    difficulty = Column(String, default="medium")  # "easy", "medium", "hard"
+    
+    # Deck properties
+    is_active = Column(Boolean, default=True)  # Can be used in games
+    is_public = Column(Boolean, default=True)  # Visible to all users
+    created_by = Column(String, nullable=True)  # User ID or "system"
+    
+    # Usage stats
+    total_items = Column(Integer, default=0)  # Cache count of items
+    usage_count = Column(Integer, default=0)  # How many times this deck was used
+    
+    # Relationships
+    items = relationship("DeckItem", back_populates="deck", cascade="all, delete-orphan")
+
+
+class DeckItem(Base):
+    """Individual drawing prompts within a deck"""
+    __tablename__ = 'deck_items'
+    
+    id = Column(Integer, primary_key=True)
+    deck_id = Column(Integer, ForeignKey('decks.id'))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Prompt data
+    prompt = Column(String, nullable=False)  # "Secret agent", "Cat", "Running"
+    difficulty = Column(String, default="medium")  # Override deck difficulty if needed
+    
+    # Usage and performance stats
+    usage_count = Column(Integer, default=0)  # Times this prompt was used
+    avg_human_correct_rate = Column(Float, default=0.0)  # How often humans guess correctly
+    avg_ai_correct_rate = Column(Float, default=0.0)    # How often AI guesses correctly
+    
+    # Relationships
+    deck = relationship("Deck", back_populates="items")
+
+
 # Create all tables
 Base.metadata.create_all(bind=engine)
 

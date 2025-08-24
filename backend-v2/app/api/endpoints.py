@@ -9,7 +9,12 @@ from ..models import get_db, Game, GameRound, APIMetrics, AIAnalysisLog
 from ..schemas.requests import (
     CreateGameRequest, 
     DrawingAnalysisRequest, 
-    SaveGameRoundRequest
+    SaveGameRoundRequest,
+    CreateDeckRequest,
+    UpdateDeckRequest,
+    DeckSelectionRequest,
+    AddItemsToDeckRequest,
+    RemoveItemsFromDeckRequest
 )
 from ..schemas.responses import (
     CreateGameResponse,
@@ -19,10 +24,16 @@ from ..schemas.responses import (
     ModelComparisonResponse,
     APIPerformanceResponse,
     PromptVersionsResponse,
-    HealthCheckResponse
+    HealthCheckResponse,
+    DeckResponse,
+    DeckListResponse,
+    DeckWithItemsResponse,
+    RandomPromptsResponse,
+    DeckStatsResponse
 )
 from ..core.ai_interface import AIProvider, DrawingAnalysisRequest as AIDrawingRequest
 from ..services import OpenAIProvider, AnthropicProvider, PromptManager, metrics_service
+from ..services.deck_service import DeckService
 from ..config import settings
 
 logger = structlog.get_logger(__name__)
@@ -123,11 +134,42 @@ async def analyze_drawing(
     db: Session = Depends(get_db),
     # api_key: str = Depends(verify_api_key)  # Temporarily disabled for testing
 ):
-    """Analyze a drawing using AI"""
+    """Analyze a drawing using AI with automatic prompt generation from decks"""
     start_time = time.time()
     ai_start_time = None
     
     try:
+        # Get or generate options
+        options = None
+        correct_index = None
+        correct_option = None
+        deck_ids_used = None
+        
+        if request.options:
+            # Use explicit options (backward compatibility)
+            options = request.options
+            logger.info("Using explicit options", count=len(options))
+        else:
+            # Generate options from decks (new approach)
+            deck_service = DeckService(db)
+            try:
+                prompt_result = deck_service.get_random_prompts(
+                    count=request.prompt_count,
+                    deck_ids=request.deck_ids,
+                    difficulty=request.difficulty,
+                    exclude_recent=request.exclude_recent
+                )
+                options = prompt_result["prompts"]
+                correct_index = prompt_result["correct_index"]
+                correct_option = prompt_result["correct_prompt"]
+                deck_ids_used = prompt_result["deck_ids_used"]
+                logger.info("Generated prompts from decks", count=len(options), deck_ids=deck_ids_used)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+        
+        if not options or len(options) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 options required")
+        
         # Determine which AI provider to use
         provider = request.ai_provider or AIProvider(settings.default_ai_provider)
         
@@ -142,7 +184,7 @@ async def analyze_drawing(
         # Create AI request
         ai_request = AIDrawingRequest(
             image_data=request.image_data,
-            options=request.options,
+            options=options,
             prompt_version=request.prompt_version,
             model_override=request.model_override,
             provider_override=request.ai_provider
@@ -168,7 +210,7 @@ async def analyze_drawing(
         try:
             analysis_log = AIAnalysisLog(
                 image_data=request.image_data,
-                options=request.options,
+                options=options,
                 prompt_version=request.prompt_version,
                 ai_provider=ai_response.provider.value,
                 ai_model=ai_response.model_used,
@@ -192,7 +234,8 @@ async def analyze_drawing(
             success=ai_response.success,
             provider=ai_response.provider.value,
             model=ai_response.model_used,
-            response_time_ms=ai_response.response_time_ms
+            response_time_ms=ai_response.response_time_ms,
+            deck_ids_used=deck_ids_used
         )
         
         return DrawingAnalysisResponse(
@@ -201,6 +244,10 @@ async def analyze_drawing(
             guess_text=ai_response.guess_text,
             confidence=ai_response.confidence,
             reasoning=ai_response.reasoning,
+            options=options,
+            correct_index=correct_index,
+            correct_option=correct_option,
+            deck_ids_used=deck_ids_used,
             model_used=ai_response.model_used,
             provider=ai_response.provider,
             response_time_ms=ai_response.response_time_ms,
@@ -481,3 +528,335 @@ async def get_analysis_logs(limit: int = 10, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error("Failed to get analysis logs", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get analysis logs")
+
+
+# =============================================================================
+# DECK MANAGEMENT ENDPOINTS
+# =============================================================================
+
+@router.get("/decks", response_model=DeckListResponse)
+async def get_all_decks(
+    include_inactive: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Get all available decks"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        decks = deck_service.get_all_decks(include_inactive)
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks", "GET", 200, response_time, db)
+        
+        return DeckListResponse(
+            decks=decks,
+            total_count=len(decks)
+        )
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks", "GET", 500, response_time, db,
+            error_type="deck_error", error_message=str(e)
+        )
+        logger.error("Failed to get decks", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get decks")
+
+
+@router.get("/decks/{deck_id}", response_model=DeckWithItemsResponse)
+async def get_deck_with_items(
+    deck_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific deck with all its items"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        deck_data = deck_service.get_deck_with_items(deck_id)
+        
+        if not deck_data:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}", "GET", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}", "GET", 200, response_time, db)
+        
+        return DeckWithItemsResponse(**deck_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}", "GET", 500, response_time, db,
+            error_type="deck_error", error_message=str(e)
+        )
+        logger.error("Failed to get deck", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get deck")
+
+
+@router.post("/decks", response_model=DeckResponse)
+async def create_deck(
+    request: CreateDeckRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Create a new deck"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        deck = deck_service.create_deck(request)
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks", "POST", 201, response_time, db)
+        
+        logger.info("Deck created", deck_id=deck.id, name=deck.name)
+        return deck
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks", "POST", 500, response_time, db,
+            error_type="deck_creation_error", error_message=str(e)
+        )
+        logger.error("Failed to create deck", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to create deck")
+
+
+@router.put("/decks/{deck_id}", response_model=DeckResponse)
+async def update_deck(
+    deck_id: int,
+    request: UpdateDeckRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Update an existing deck"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        deck = deck_service.update_deck(deck_id, request)
+        
+        if not deck:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}", "PUT", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}", "PUT", 200, response_time, db)
+        
+        logger.info("Deck updated", deck_id=deck_id)
+        return deck
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}", "PUT", 500, response_time, db,
+            error_type="deck_update_error", error_message=str(e)
+        )
+        logger.error("Failed to update deck", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to update deck")
+
+
+@router.delete("/decks/{deck_id}")
+async def delete_deck(
+    deck_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Delete a deck and all its items"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        success = deck_service.delete_deck(deck_id)
+        
+        if not success:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}", "DELETE", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}", "DELETE", 200, response_time, db)
+        
+        logger.info("Deck deleted", deck_id=deck_id)
+        return {"message": "Deck deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}", "DELETE", 500, response_time, db,
+            error_type="deck_deletion_error", error_message=str(e)
+        )
+        logger.error("Failed to delete deck", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to delete deck")
+
+
+@router.post("/decks/prompts", response_model=RandomPromptsResponse)
+async def get_random_prompts(
+    request: DeckSelectionRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Get random prompts from specified decks for game rounds"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        result = deck_service.get_random_prompts(
+            count=request.count,
+            deck_ids=request.deck_ids,
+            difficulty=request.difficulty,
+            exclude_recent=request.exclude_recent
+        )
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/prompts", "POST", 200, response_time, db)
+        
+        logger.info(
+            "Random prompts selected",
+            count=request.count,
+            deck_ids=request.deck_ids,
+            deck_ids_used=result["deck_ids_used"]
+        )
+        
+        return RandomPromptsResponse(
+            success=True,
+            prompts=result["prompts"],
+            correct_index=result["correct_index"],
+            correct_prompt=result["correct_prompt"],
+            deck_ids_used=result["deck_ids_used"]
+        )
+        
+    except ValueError as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/prompts", "POST", 400, response_time, db,
+            error_type="insufficient_prompts", error_message=str(e)
+        )
+        logger.error("Insufficient prompts available", error=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/prompts", "POST", 500, response_time, db,
+            error_type="prompt_selection_error", error_message=str(e)
+        )
+        logger.error("Failed to get random prompts", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get random prompts")
+
+
+@router.post("/decks/{deck_id}/items", response_model=DeckResponse)
+async def add_items_to_deck(
+    deck_id: int,
+    request: AddItemsToDeckRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Add new items to an existing deck"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        deck = deck_service.add_items_to_deck(deck_id, request.items)
+        
+        if not deck:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}/items", "POST", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}/items", "POST", 200, response_time, db)
+        
+        logger.info("Items added to deck", deck_id=deck_id, item_count=len(request.items))
+        return deck
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}/items", "POST", 500, response_time, db,
+            error_type="deck_item_addition_error", error_message=str(e)
+        )
+        logger.error("Failed to add items to deck", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to add items to deck")
+
+
+@router.delete("/decks/{deck_id}/items", response_model=DeckResponse)
+async def remove_items_from_deck(
+    deck_id: int,
+    request: RemoveItemsFromDeckRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """Remove specific items from a deck"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        deck = deck_service.remove_items_from_deck(deck_id, request.item_ids)
+        
+        if not deck:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}/items", "DELETE", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}/items", "DELETE", 200, response_time, db)
+        
+        logger.info("Items removed from deck", deck_id=deck_id, item_count=len(request.item_ids))
+        return deck
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}/items", "DELETE", 500, response_time, db,
+            error_type="deck_item_removal_error", error_message=str(e)
+        )
+        logger.error("Failed to remove items from deck", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to remove items from deck")
+
+
+@router.get("/decks/{deck_id}/stats", response_model=DeckStatsResponse)
+async def get_deck_stats(
+    deck_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get detailed statistics for a deck"""
+    start_time = time.time()
+    
+    try:
+        deck_service = DeckService(db)
+        stats = deck_service.get_deck_stats(deck_id)
+        
+        if not stats:
+            response_time = (time.time() - start_time) * 1000
+            await log_api_metrics("/decks/{deck_id}/stats", "GET", 404, response_time, db)
+            raise HTTPException(status_code=404, detail="Deck not found")
+        
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics("/decks/{deck_id}/stats", "GET", 200, response_time, db)
+        
+        return DeckStatsResponse(**stats)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        await log_api_metrics(
+            "/decks/{deck_id}/stats", "GET", 500, response_time, db,
+            error_type="deck_stats_error", error_message=str(e)
+        )
+        logger.error("Failed to get deck stats", deck_id=deck_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get deck stats")
