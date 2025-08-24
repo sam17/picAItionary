@@ -179,7 +179,8 @@ namespace UI
                 if (drawing != null && gameController.CurrentRoundData != null)
                 {
                     drawing.Setup(gameController.CurrentRoundData.options, 
-                                 gameController.CurrentRoundData.correctOptionIndex);
+                                 gameController.CurrentRoundData.correctOptionIndex,
+                                 gameController.CurrentRoundData.activeModifier);
                 }
             }
             else

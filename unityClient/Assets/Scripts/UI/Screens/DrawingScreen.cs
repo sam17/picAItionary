@@ -10,10 +10,11 @@ namespace UI
     public class DrawingScreen : MonoBehaviour
     {
         [Header("UI Elements")]
-        [SerializeField] private UIDrawingCanvas drawingCanvas; // The actual drawing area
+        [SerializeField] private UIDrawingCanvas drawingCanvas;
         [SerializeField] private Button submitButton;
         [SerializeField] private Button clearButton;
         [SerializeField] private TextMeshProUGUI timerText;
+        [SerializeField] private TextMeshProUGUI modifierText;
         
         [Header("Option Text Elements")]
         [SerializeField] private List<TextMeshProUGUI> optionTexts = new List<TextMeshProUGUI>(4);
@@ -37,7 +38,7 @@ namespace UI
             }
         }
 
-        public void Setup(List<DrawingOption> options, int correctIndex)
+        public void Setup(List<DrawingOption> options, int correctIndex, Game.Modifiers.ModifierData modifier = null)
         {
             correctOptionIndex = correctIndex;
             hasSubmitted = false;
@@ -45,6 +46,20 @@ namespace UI
             if (drawingCanvas != null)
             {
                 drawingCanvas.ClearCanvas();
+            }
+            
+            if (modifierText != null)
+            {
+                if (modifier != null)
+                {
+                    modifierText.gameObject.SetActive(true);
+                    modifierText.text = $"MODIFIER: {modifier.name}\n{modifier.description}";
+                    modifierText.color = Color.yellow;
+                }
+                else
+                {
+                    modifierText.gameObject.SetActive(false);
+                }
             }
 
             if (optionTexts.Count < options.Count)

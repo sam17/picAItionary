@@ -71,9 +71,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  testLocal: 0
+  testLocal: 1
   localModeRounds: 3
   multiplayerRounds: 5
+  drawingTimeLimit: 60
+  guessingTimeLimit: 30
+  modifiersEnabled: 1
   OnStateChanged:
     m_PersistentCalls:
       m_Calls: []

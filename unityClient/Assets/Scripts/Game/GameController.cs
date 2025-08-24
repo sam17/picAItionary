@@ -45,6 +45,7 @@ namespace Game
         public byte[] drawingData;
         public Dictionary<ulong, int> playerGuesses = new Dictionary<ulong, int>();
         public int aiGuess = -1;
+        public Modifiers.ModifierData activeModifier;
     }
 
     public class GameController : NetworkBehaviour
@@ -53,8 +54,9 @@ namespace Game
         [SerializeField] private bool testLocal = false;
         [SerializeField] private int localModeRounds = 3;
         [SerializeField] private int multiplayerRounds = 5;
-        [SerializeField] private float drawingTimeLimit = 60f; // 60 seconds to draw
-        [SerializeField] private float guessingTimeLimit = 30f; // 30 seconds to guess
+        [SerializeField] private float drawingTimeLimit = 60f;
+        [SerializeField] private float guessingTimeLimit = 30f;
+        [SerializeField] private bool modifiersEnabled = true; // Enable by default for testing
         
         [Header("Network State")]
         private NetworkVariable<GameState> currentState = new NetworkVariable<GameState>(
@@ -137,7 +139,8 @@ namespace Game
             switch (CurrentState)
             {
                 case GameState.Drawing:
-                    return Mathf.Max(0, drawingTimeLimit - elapsed);
+                    float limit = GetTimeLimit(); // Use the modified time limit
+                    return Mathf.Max(0, limit - elapsed);
                 case GameState.Guessing:
                     return Mathf.Max(0, guessingTimeLimit - elapsed);
                 default:
@@ -150,7 +153,16 @@ namespace Game
             switch (CurrentState)
             {
                 case GameState.Drawing:
-                    return drawingTimeLimit;
+                    float baseTime = drawingTimeLimit;
+                    // Check for Speed Draw modifier
+                    if (currentRoundData != null && currentRoundData.activeModifier != null)
+                    {
+                        if (currentRoundData.activeModifier.name == "Speed Draw")
+                        {
+                            baseTime = drawingTimeLimit / 2f;
+                        }
+                    }
+                    return baseTime;
                 case GameState.Guessing:
                     return guessingTimeLimit;
                 default:
@@ -326,6 +338,13 @@ namespace Game
             localAiScore = 0;
             localCurrentRound = 0;
             
+            // Initialize modifiers
+            if (Modifiers.ModifierManager.Instance != null)
+            {
+                Modifiers.ModifierManager.Instance.SetModifiersEnabled(modifiersEnabled);
+                Debug.Log($"GameController: Modifiers enabled: {modifiersEnabled}");
+            }
+            
             // Setup single player
             if (playerOrder == null)
                 playerOrder = new NetworkList<ulong>();
@@ -405,6 +424,13 @@ namespace Game
             playersScore.Value = 0;
             aiScore.Value = 0;
             currentRound.Value = 0;
+            
+            // Initialize modifiers
+            if (Modifiers.ModifierManager.Instance != null)
+            {
+                Modifiers.ModifierManager.Instance.SetModifiersEnabled(modifiersEnabled);
+                Debug.Log($"GameController: Modifiers enabled: {modifiersEnabled}");
+            }
             
             // Setup player order
             SetupPlayerOrder();
@@ -500,8 +526,16 @@ namespace Game
             
             Debug.Log($"GameController: Round {currentRoundData.roundNumber} - Drawer is player {currentRoundData.drawerId}");
             
-            // Generate drawing options
             GenerateDrawingOptions();
+            
+            if (Modifiers.ModifierManager.Instance != null && Modifiers.ModifierManager.Instance.AreModifiersEnabled())
+            {
+                currentRoundData.activeModifier = Modifiers.ModifierManager.Instance.SelectRandomModifier();
+                if (currentRoundData.activeModifier != null)
+                {
+                    Debug.Log($"GameController: Selected modifier: {currentRoundData.activeModifier.name}");
+                }
+            }
             
             // Set current drawer
             if (isLocalMode)
@@ -527,8 +561,7 @@ namespace Game
             // Sync round data to clients
             if (IsHost || IsServer)
             {
-                // Send the full round data to clients
-                // We'll send each option individually since arrays aren't directly serializable
+                bool hasModifier = currentRoundData.activeModifier != null;
                 SyncRoundDataToClientsClientRpc(
                     currentRoundData.roundNumber,
                     currentRoundData.drawerId,
@@ -536,7 +569,11 @@ namespace Game
                     currentRoundData.options[1].text,
                     currentRoundData.options[2].text,
                     currentRoundData.options[3].text,
-                    currentRoundData.correctOptionIndex
+                    currentRoundData.correctOptionIndex,
+                    hasModifier,
+                    hasModifier ? currentRoundData.activeModifier.name : "",
+                    hasModifier ? currentRoundData.activeModifier.description : "",
+                    hasModifier ? (int)currentRoundData.activeModifier.type : 0
                 );
             }
         }
@@ -859,6 +896,20 @@ namespace Game
             AdvanceToNextRound();
         }
         
+        public void SetModifiersEnabled(bool enabled)
+        {
+            modifiersEnabled = enabled;
+            if (Modifiers.ModifierManager.Instance != null)
+            {
+                Modifiers.ModifierManager.Instance.SetModifiersEnabled(enabled);
+            }
+        }
+        
+        public bool AreModifiersEnabled()
+        {
+            return modifiersEnabled;
+        }
+        
         public void RestartGame()
         {
             if (!isLocalMode && !IsServer) return;
@@ -976,7 +1027,11 @@ namespace Game
             string option2,
             string option3,
             string option4,
-            int correctIndex)
+            int correctIndex,
+            bool hasModifier = false,
+            string modifierName = "",
+            string modifierDescription = "",
+            int modifierType = 0)
         {
             Debug.Log($"GameController Client: Received round data - Round {roundNumber}, Drawer {drawerId}");
             
@@ -998,6 +1053,16 @@ namespace Game
                 currentRoundData.options.Add(new DrawingOption(option2, 1));
                 currentRoundData.options.Add(new DrawingOption(option3, 2));
                 currentRoundData.options.Add(new DrawingOption(option4, 3));
+                
+                if (hasModifier)
+                {
+                    currentRoundData.activeModifier = new Modifiers.ModifierData(
+                        modifierName, 
+                        modifierDescription, 
+                        (Modifiers.ModifierType)modifierType, 
+                        0
+                    );
+                }
                 
                 Debug.Log($"GameController Client: Round data synced with 4 options, Drawer is {drawerId}");
                 Debug.Log($"GameController Client: Current NetworkVariable drawerId is {currentDrawerId.Value}");
