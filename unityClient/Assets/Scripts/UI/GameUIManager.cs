@@ -213,7 +213,7 @@ namespace UI
                         Debug.LogError("GameUIManager: WARNING - No drawing data in CurrentRoundData!");
                     }
                     
-                    guessing.Setup(drawingData, gameController.CurrentRoundData.options);
+                    guessing.Setup(drawingData, gameController.CurrentRoundData.options, gameController.CurrentRoundData.activeModifier);
                 }
                 else
                 {

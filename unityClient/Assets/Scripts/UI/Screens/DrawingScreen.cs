@@ -24,6 +24,7 @@ namespace UI
         private int correctOptionIndex;
         private byte[] currentDrawingData;
         private bool hasSubmitted = false;
+        private Drawing.DrawingModifierHandler modifierHandler;
         
         private void Awake()
         {
@@ -35,6 +36,12 @@ namespace UI
             if (clearButton != null)
             {
                 clearButton.onClick.AddListener(OnClearDrawing);
+            }
+            
+            modifierHandler = GetComponentInChildren<Drawing.DrawingModifierHandler>();
+            if (modifierHandler == null && drawingCanvas != null)
+            {
+                modifierHandler = drawingCanvas.GetComponent<Drawing.DrawingModifierHandler>();
             }
         }
 
@@ -61,6 +68,11 @@ namespace UI
                     modifierText.gameObject.SetActive(false);
                 }
             }
+            
+            if (modifierHandler != null)
+            {
+                modifierHandler.ApplyModifier(modifier);
+            }
 
             if (optionTexts.Count < options.Count)
             {
@@ -73,18 +85,29 @@ namespace UI
             {
                 if (optionTexts[i] != null)
                 {
-                    optionTexts[i].text = options[i].text;
-
-                    if (i == correctIndex)
+                    bool isBlindOptions = modifier != null && modifier.name == "Blind Options";
+                    
+                    if (isBlindOptions && i != correctIndex)
                     {
-                        optionTexts[i].color = highlightColor;
-                        optionTexts[i].fontStyle = FontStyles.Bold;
-                        optionTexts[i].text = "→ " + options[i].text + " ←";
+                        optionTexts[i].text = "???";
+                        optionTexts[i].color = Color.gray;
+                        optionTexts[i].fontStyle = FontStyles.Normal;
                     }
                     else
                     {
-                        optionTexts[i].color = normalColor;
-                        optionTexts[i].fontStyle = FontStyles.Normal;
+                        optionTexts[i].text = options[i].text;
+                        
+                        if (i == correctIndex)
+                        {
+                            optionTexts[i].color = highlightColor;
+                            optionTexts[i].fontStyle = FontStyles.Bold;
+                            optionTexts[i].text = "→ " + options[i].text + " ←";
+                        }
+                        else
+                        {
+                            optionTexts[i].color = normalColor;
+                            optionTexts[i].fontStyle = FontStyles.Normal;
+                        }
                     }
                 }
             }

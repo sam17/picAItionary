@@ -19,6 +19,11 @@ namespace Drawing
         [SerializeField] private Color brushColor = Color.black;
         [SerializeField] private bool smoothLines = true;
         
+        public void ConstrainDrawingPosition(Vector2 screenPosition)
+        {
+            // Used for straight lines modifier
+        }
+        
         private Texture2D drawingTexture;
         private Color[] cleanColors;
         private Color[] currentPixels; // Working pixel buffer

@@ -64,8 +64,14 @@ namespace Game.Modifiers
             availableModifiers.Clear();
             
             // Register all available modifiers
-            RegisterModifier(new ModifierData("Speed Draw", "Drawing time cut in half!", ModifierType.TimeModifier, 1));
-            RegisterModifier(new ModifierData("Lucky!", "No modifier - draw normally!", ModifierType.Other, 2));
+            RegisterModifier(new ModifierData("Speed Draw", "Drawing time cut in half - 30 seconds only!", ModifierType.TimeModifier, 1));
+            RegisterModifier(new ModifierData("Blind Options", "You only see the correct option while drawing!", ModifierType.DrawingRestriction, 2));
+            RegisterModifier(new ModifierData("Half Hidden", "Half of your drawing will be hidden from guessers!", ModifierType.VisualEffect, 3));
+            RegisterModifier(new ModifierData("Big Brush", "You're stuck with a huge brush size!", ModifierType.InputModifier, 4));
+            RegisterModifier(new ModifierData("No Lift", "Don't lift your pen - drawing auto-submits when you do!", ModifierType.DrawingRestriction, 5));
+            RegisterModifier(new ModifierData("Straight Lines", "All your lines snap to 90-degree angles!", ModifierType.InputModifier, 6));
+            RegisterModifier(new ModifierData("Non-Dominant Hand", "Draw with your non-dominant hand!", ModifierType.Other, 7));
+            RegisterModifier(new ModifierData("Lucky!", "No modifier - draw normally!", ModifierType.Other, 8));
             
             Debug.Log($"ModifierManager: Initialized with {availableModifiers.Count} modifiers");
         }

@@ -10,9 +10,10 @@ namespace UI
     public class GuessingScreen : MonoBehaviour
     {
         [Header("UI Elements")]
-        [SerializeField] private DrawingDisplayCanvas drawingDisplay; // Component to display the drawing
+        [SerializeField] private DrawingDisplayCanvas drawingDisplay;
         [SerializeField] private TextMeshProUGUI instructionText;
         [SerializeField] private TextMeshProUGUI timerText;
+        [SerializeField] private GameObject halfHiddenOverlay;
         
         [Header("Option Buttons")]
         [SerializeField] private List<Button> optionButtons = new List<Button>(4);
@@ -31,10 +32,12 @@ namespace UI
             }
         }
         
-        public void Setup(byte[] drawingData, List<DrawingOption> options)
+        public void Setup(byte[] drawingData, List<DrawingOption> options, Game.Modifiers.ModifierData modifier = null)
         {
             selectedOption = -1;
             hasSubmitted = false;
+            
+            HandleHalfHiddenModifier(modifier);
             
             if (drawingDisplay == null)
             {
@@ -165,6 +168,31 @@ namespace UI
                     {
                         image.color = disabledColor;
                     }
+                }
+            }
+        }
+        
+        private void HandleHalfHiddenModifier(Game.Modifiers.ModifierData modifier)
+        {
+            if (halfHiddenOverlay != null)
+            {
+                if (modifier != null && modifier.name == "Half Hidden")
+                {
+                    halfHiddenOverlay.SetActive(true);
+                    bool hideLeft = Random.Range(0, 2) == 0;
+                    
+                    RectTransform rect = halfHiddenOverlay.GetComponent<RectTransform>();
+                    if (rect != null)
+                    {
+                        rect.anchorMin = hideLeft ? new Vector2(0, 0) : new Vector2(0.5f, 0);
+                        rect.anchorMax = hideLeft ? new Vector2(0.5f, 1) : new Vector2(1, 1);
+                        rect.offsetMin = Vector2.zero;
+                        rect.offsetMax = Vector2.zero;
+                    }
+                }
+                else
+                {
+                    halfHiddenOverlay.SetActive(false);
                 }
             }
         }
