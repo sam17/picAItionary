@@ -127,32 +127,315 @@ prompt_manager.add_prompt_version(
 )
 ```
 
-## Unity Integration
+## Unity Client Developer Guide
 
-### Basic Usage
+### 🔑 Authentication Setup
+**ALL API endpoints require authentication** (except `/health`):
 ```csharp
-// Analyze drawing during gameplay
-var analysisRequest = new DrawingAnalysisRequest {
-    image_data = Convert.ToBase64String(drawingBytes),
-    options = new[] { "cat", "dog", "bird", "fish" },
-    prompt_version = "v2"
-};
+public class PicAitionaryAPI : MonoBehaviour 
+{
+    private const string API_KEY = "your-api-key-for-unity-client";
+    private const string BASE_URL = "https://your-backend.com/api/v2";
+    
+    private UnityWebRequest CreateAuthenticatedRequest(string endpoint, string method = "GET")
+    {
+        var request = UnityWebRequest.Get($"{BASE_URL}{endpoint}");
+        request.method = method;
+        request.SetRequestHeader("X-API-Key", API_KEY);
+        request.SetRequestHeader("Content-Type", "application/json");
+        return request;
+    }
+}
+```
 
-// Save complete round data (auto-creates game if needed)
-var roundRequest = new SaveGameRoundRequest {
-    game_id = 100, // Any unique ID
-    round_number = 1,
-    image_data = drawingData,
-    drawing_time_seconds = 25.5f,
-    all_options = new[] { "cat", "dog", "bird", "fish" },
-    correct_option = "cat",
-    correct_option_index = 0,
-    human_guess = "dog",
-    human_guess_index = 1,
-    human_is_correct = false,
-    ai_prompt_version = "v2",
-    round_modifiers = new[] { "non_dominant_hand" }
-};
+### 🎮 Core Game Flow Integration
+
+#### 1. **Deck Selection (Game Setup)**
+```csharp
+// Get available decks for players to choose from
+public async Task<DeckListResponse> GetAvailableDecks()
+{
+    using var request = CreateAuthenticatedRequest("/decks");
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        return JsonUtility.FromJson<DeckListResponse>(request.downloadHandler.text);
+    }
+    throw new Exception($"Failed to get decks: {request.error}");
+}
+
+// Let player choose: "Base Deck", "Custom Deck", etc.
+public void ShowDeckSelection(DeckListResponse decks) 
+{
+    foreach (var deck in decks.decks) {
+        // Display: deck.name, deck.description, deck.difficulty, deck.total_items
+        // Show deck.difficulty as a tag (e.g., "Mixed", "Easy", "Hard")
+    }
+}
+```
+
+#### 2. **Round Setup (Prompt Generation)**
+```csharp
+// Generate prompts from selected deck for a round
+public async Task<RandomPromptsResponse> GenerateRoundPrompts(int deckId, string[] recentlyUsed = null)
+{
+    var requestData = new {
+        deck_id = deckId,           // Single deck ID chosen by player
+        count = 4,                  // Always 4 prompts
+        exclude_recent = recentlyUsed  // Avoid repetition
+    };
+    
+    using var request = CreateAuthenticatedRequest("/decks/prompts", "POST");
+    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(requestData)));
+    
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        return JsonUtility.FromJson<RandomPromptsResponse>(request.downloadHandler.text);
+    }
+    throw new Exception($"Failed to generate prompts: {request.error}");
+}
+
+// Use the response for game setup
+public void SetupGameRound(RandomPromptsResponse prompts)
+{
+    string[] options = prompts.prompts;           // ["Dance battle", "Emerald", "Cat", "Pizza"]
+    int correctIndex = prompts.correct_index;     // 2 (meaning "Cat" is correct)
+    string correctAnswer = prompts.correct_prompt; // "Cat"
+    int deckUsed = prompts.deck_id_used;          // 10 (Base Deck ID)
+    
+    // Show correct answer to drawer
+    ShowToDrawer(correctAnswer);
+    
+    // Show all options to guesser (without revealing correct one)
+    ShowOptionsToGuesser(options);
+}
+```
+
+#### 3. **AI Analysis During Drawing**
+```csharp
+// Analyze drawing in real-time or after completion
+public async Task<DrawingAnalysisResponse> AnalyzeDrawing(byte[] imageData, string[] gameOptions, int? deckId = null)
+{
+    var requestData = new {
+        image_data = Convert.ToBase64String(imageData),
+        
+        // Option 1: Use explicit options (current round)
+        options = gameOptions,
+        
+        // Option 2: Auto-generate from deck (if no options provided)
+        deck_id = deckId,           // Will use Base Deck if null
+        prompt_count = 4,
+        
+        // AI settings
+        prompt_version = "v3",      // v1, v2, v3 available
+        ai_provider = "openai"      // "openai" or "anthropic"
+    };
+    
+    using var request = CreateAuthenticatedRequest("/analyze-drawing", "POST");
+    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(requestData)));
+    
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        return JsonUtility.FromJson<DrawingAnalysisResponse>(request.downloadHandler.text);
+    }
+    throw new Exception($"AI analysis failed: {request.error}");
+}
+
+// Process AI analysis results
+public void HandleAIAnalysis(DrawingAnalysisResponse analysis)
+{
+    if (analysis.success) {
+        int aiGuessIndex = analysis.guess_index;          // AI's choice (0-3)
+        string aiGuessText = analysis.guess_text;         // "Cat"
+        float confidence = analysis.confidence;           // 0.85
+        string reasoning = analysis.reasoning;            // AI's explanation
+        
+        // For UI feedback
+        string modelUsed = analysis.model_used;           // "gpt-4o"
+        int responseTime = analysis.response_time_ms;     // 1200
+        
+        // Game logic: compare AI guess with correct answer
+        bool aiWasCorrect = aiGuessIndex == analysis.correct_index;
+        
+        ShowAIGuess(aiGuessText, confidence, aiWasCorrect);
+    }
+}
+```
+
+#### 4. **Save Complete Round Data**
+```csharp
+// Save round results with full game context
+public async Task<SaveGameRoundResponse> SaveGameRound(GameRoundData roundData)
+{
+    var requestData = new {
+        // Game context
+        game_id = roundData.GameSessionId,        // Your unique session ID
+        round_number = roundData.RoundNumber,     // 1, 2, 3, etc.
+        
+        // Drawing data
+        image_data = Convert.ToBase64String(roundData.DrawingImageBytes),
+        drawing_time_seconds = roundData.DrawingTimeSeconds,  // 30.5f
+        
+        // Round setup (from prompt generation)
+        all_options = roundData.AllOptions,           // ["Dance battle", "Emerald", "Cat", "Pizza"]
+        correct_option = roundData.CorrectOption,     // "Cat"
+        correct_option_index = roundData.CorrectIndex, // 2
+        
+        // Human player results
+        human_guess = roundData.HumanGuess,          // "Emerald"  
+        human_guess_index = roundData.HumanGuessIndex, // 1
+        human_is_correct = roundData.HumanWasCorrect,  // false
+        
+        // AI settings used
+        ai_prompt_version = "v3",
+        
+        // Game modifiers/challenges
+        round_modifiers = roundData.Modifiers         // ["non_dominant_hand", "time_pressure"]
+    };
+    
+    using var request = CreateAuthenticatedRequest("/save-game-round", "POST");
+    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(requestData)));
+    
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        return JsonUtility.FromJson<SaveGameRoundResponse>(request.downloadHandler.text);
+    }
+    throw new Exception($"Failed to save round: {request.error}");
+}
+
+// Handle save response for scoring
+public void ProcessRoundResults(SaveGameRoundResponse response)
+{
+    if (response.success) {
+        int roundScore = response.round_score;        // +1, 0, -1 based on human vs AI
+        int totalScore = response.total_score;        // Running total
+        
+        // AI analysis results are included
+        var aiAnalysis = response.ai_analysis;
+        
+        ShowRoundResults(roundScore, totalScore, aiAnalysis);
+        
+        // Game auto-creates if this was first round
+        Debug.Log($"Round {response.round_number} saved to game {response.game_id}");
+    }
+}
+```
+
+### 🎯 Game Scoring Logic
+The backend automatically calculates scores:
+- **+1 point**: Human correct, AI wrong (Human beats AI)
+- **0 points**: Both correct or both wrong (Tie)
+- **-1 point**: Human wrong, AI correct (AI beats Human)
+
+### 🔧 Deck Management (Optional)
+```csharp
+// Create custom themed deck
+public async Task<DeckResponse> CreateCustomDeck(string name, string description, string[] items)
+{
+    var requestData = new {
+        name = name,                    // "Space Theme"
+        description = description,      // "Sci-fi and space-related prompts"
+        difficulty = "medium",          // Just a descriptive tag
+        category = "custom",
+        is_public = true,
+        items = items                   // ["Rocket", "Alien", "Planet", "Galaxy"]
+    };
+    
+    using var request = CreateAuthenticatedRequest("/decks", "POST");
+    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(requestData)));
+    
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        return JsonUtility.FromJson<DeckResponse>(request.downloadHandler.text);
+    }
+    throw new Exception($"Failed to create deck: {request.error}");
+}
+```
+
+### 🏥 Health Monitoring
+```csharp
+// Check backend health (no auth required)
+public async Task<bool> CheckBackendHealth()
+{
+    using var request = UnityWebRequest.Get($"{BASE_URL}/health");
+    await request.SendWebRequest();
+    
+    if (request.result == UnityWebRequest.Result.Success) {
+        var health = JsonUtility.FromJson<HealthCheckResponse>(request.downloadHandler.text);
+        return health.status == "healthy" && health.database_connected;
+    }
+    return false;
+}
+```
+
+### 📱 Error Handling Best Practices
+```csharp
+public class APIErrorHandler 
+{
+    public static void HandleAPIError(UnityWebRequest request) 
+    {
+        switch (request.responseCode) {
+            case 401:
+                Debug.LogError("Invalid API key! Check your authentication.");
+                // Show "Connection Error" to user
+                break;
+            case 400:
+                var error = JsonUtility.FromJson<ErrorResponse>(request.downloadHandler.text);
+                Debug.LogError($"Bad Request: {error.detail}");
+                // Handle specific validation errors
+                break;
+            case 500:
+                Debug.LogError("Backend server error. Please try again later.");
+                // Show retry option to user
+                break;
+            default:
+                Debug.LogError($"API Error {request.responseCode}: {request.error}");
+                break;
+        }
+    }
+}
+```
+
+### 📊 Data Models for Unity
+```csharp
+[System.Serializable]
+public class DeckResponse 
+{
+    public int id;
+    public string name;
+    public string description;
+    public string difficulty;      // "easy", "medium", "hard", "mixed"
+    public int total_items;
+    public bool is_active;
+}
+
+[System.Serializable]
+public class RandomPromptsResponse 
+{
+    public bool success;
+    public string[] prompts;       // 4 prompts from chosen deck
+    public int correct_index;      // Which one player should draw
+    public string correct_prompt;  // Text of correct answer
+    public int deck_id_used;       // Deck ID used (single deck)
+}
+
+[System.Serializable]
+public class DrawingAnalysisResponse 
+{
+    public bool success;
+    public int guess_index;        // AI's guess (0-3)
+    public string guess_text;      // AI's guess in words
+    public float confidence;       // 0.0 - 1.0
+    public string reasoning;       // AI's explanation
+    public string[] options;       // All options analyzed
+    public int correct_index;      // Correct answer index
+    public string model_used;      // "gpt-4o", "claude-3-5-sonnet"
+    public int response_time_ms;
+}
 ```
 
 ## Architecture
