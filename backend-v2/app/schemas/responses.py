@@ -23,7 +23,7 @@ class DrawingAnalysisResponse(BaseModel):
     options: List[str] = Field(..., description="Options that were analyzed")
     correct_index: Optional[int] = Field(None, description="Index of correct answer (if generated)")
     correct_option: Optional[str] = Field(None, description="Correct answer text (if generated)")
-    deck_ids_used: Optional[List[int]] = Field(None, description="Deck IDs used for prompt generation")
+    deck_id_used: Optional[int] = Field(None, description="Deck ID used for prompt generation")
     
     # Metadata
     model_used: str = Field(..., description="AI model used")
@@ -142,7 +142,7 @@ class RandomPromptsResponse(BaseModel):
     prompts: List[str] = Field(..., description="Selected prompts")
     correct_index: int = Field(..., description="Index of correct answer")
     correct_prompt: str = Field(..., description="Correct answer text")
-    deck_ids_used: List[int] = Field(..., description="Deck IDs that prompts came from")
+    deck_id_used: int = Field(..., description="Deck ID that prompts came from")
     message: Optional[str] = Field(None, description="Status message")
 
 

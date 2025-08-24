@@ -121,56 +121,51 @@ class DeckService:
     
     def get_random_prompts(self, 
                           count: int = 4,
-                          deck_ids: Optional[List[int]] = None,
-                          difficulty: Optional[str] = None,
+                          deck_id: Optional[int] = None,
                           exclude_recent: Optional[List[str]] = None) -> Dict[str, Any]:
         """
-        Get random prompts for a game round
+        Get random prompts for a game round from a single deck
         
         Args:
             count: Number of prompts to return (default 4)
-            deck_ids: List of deck IDs to select from (None = all active decks)
-            difficulty: Filter by difficulty level
+            deck_id: Single deck ID to select from (None = use Base Deck)
             exclude_recent: List of prompts to exclude (recently used)
             
         Returns:
             Dict with prompts list and correct_index
         """
-        # Build query for deck items
+        # Use Base Deck (deck ID 1) if no specific deck provided
+        if deck_id is None:
+            base_deck = self.db.query(Deck).filter(Deck.name == "Base Deck").first()
+            if not base_deck:
+                raise ValueError("Base Deck not found. Please run database seed script.")
+            deck_id = base_deck.id
+        
+        # Build query for deck items from the specified deck
         query = self.db.query(DeckItem).join(Deck)
         
-        # Filter by active decks
-        query = query.filter(Deck.is_active == True)
-        
-        # Filter by specific decks if provided
-        if deck_ids:
-            query = query.filter(Deck.id.in_(deck_ids))
-        
-        # Filter by difficulty
-        if difficulty:
-            query = query.filter(
-                and_(
-                    Deck.difficulty == difficulty,
-                    DeckItem.difficulty == difficulty
-                )
-            )
+        # Filter by the specific deck and ensure it's active
+        query = query.filter(and_(Deck.id == deck_id, Deck.is_active == True))
         
         # Exclude recently used prompts
         if exclude_recent:
             query = query.filter(~DeckItem.prompt.in_(exclude_recent))
         
-        # Get all matching items
+        # Get all matching items from this single deck
         available_items = query.all()
         
         if len(available_items) < count:
-            # If not enough items, fallback to any active deck items
-            available_items = self.db.query(DeckItem).join(Deck)\
-                .filter(Deck.is_active == True).all()
+            # If not enough items after exclusions, try without exclusions
+            query = self.db.query(DeckItem).join(Deck)\
+                .filter(and_(Deck.id == deck_id, Deck.is_active == True))
+            available_items = query.all()
+            
+            if len(available_items) < count:
+                deck_name = self.db.query(Deck).filter(Deck.id == deck_id).first()
+                deck_name = deck_name.name if deck_name else f"Deck {deck_id}"
+                raise ValueError(f"Not enough prompts in {deck_name}. Found {len(available_items)}, need {count}")
         
-        if len(available_items) < count:
-            raise ValueError(f"Not enough prompts available. Found {len(available_items)}, need {count}")
-        
-        # Select random items
+        # Select random items from the single deck
         selected_items = random.sample(available_items, count)
         
         # Pick one as the correct answer
@@ -179,7 +174,10 @@ class DeckService:
         # Update usage statistics
         for item in selected_items:
             item.usage_count += 1
-            item.deck.usage_count += 1
+        
+        # Update deck usage count once
+        deck = selected_items[0].deck
+        deck.usage_count += 1
         
         self.db.commit()
         
@@ -187,7 +185,7 @@ class DeckService:
             "prompts": [item.prompt for item in selected_items],
             "correct_index": correct_index,
             "correct_prompt": selected_items[correct_index].prompt,
-            "deck_ids_used": list(set(item.deck_id for item in selected_items))
+            "deck_id_used": deck_id
         }
     
     def add_items_to_deck(self, deck_id: int, items: List[str]) -> Optional[DeckResponse]:

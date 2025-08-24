@@ -143,7 +143,7 @@ async def analyze_drawing(
         options = None
         correct_index = None
         correct_option = None
-        deck_ids_used = None
+        deck_id_used = None
         
         if request.options:
             # Use explicit options (backward compatibility)
@@ -155,15 +155,14 @@ async def analyze_drawing(
             try:
                 prompt_result = deck_service.get_random_prompts(
                     count=request.prompt_count,
-                    deck_ids=request.deck_ids,
-                    difficulty=request.difficulty,
+                    deck_id=request.deck_id,
                     exclude_recent=request.exclude_recent
                 )
                 options = prompt_result["prompts"]
                 correct_index = prompt_result["correct_index"]
                 correct_option = prompt_result["correct_prompt"]
-                deck_ids_used = prompt_result["deck_ids_used"]
-                logger.info("Generated prompts from decks", count=len(options), deck_ids=deck_ids_used)
+                deck_id_used = prompt_result["deck_id_used"]
+                logger.info("Generated prompts from deck", count=len(options), deck_id=deck_id_used)
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
         
@@ -235,7 +234,7 @@ async def analyze_drawing(
             provider=ai_response.provider.value,
             model=ai_response.model_used,
             response_time_ms=ai_response.response_time_ms,
-            deck_ids_used=deck_ids_used
+            deck_id_used=deck_id_used
         )
         
         return DrawingAnalysisResponse(
@@ -247,7 +246,7 @@ async def analyze_drawing(
             options=options,
             correct_index=correct_index,
             correct_option=correct_option,
-            deck_ids_used=deck_ids_used,
+            deck_id_used=deck_id_used,
             model_used=ai_response.model_used,
             provider=ai_response.provider,
             response_time_ms=ai_response.response_time_ms,
@@ -713,8 +712,7 @@ async def get_random_prompts(
         deck_service = DeckService(db)
         result = deck_service.get_random_prompts(
             count=request.count,
-            deck_ids=request.deck_ids,
-            difficulty=request.difficulty,
+            deck_id=request.deck_id,
             exclude_recent=request.exclude_recent
         )
         
@@ -724,8 +722,8 @@ async def get_random_prompts(
         logger.info(
             "Random prompts selected",
             count=request.count,
-            deck_ids=request.deck_ids,
-            deck_ids_used=result["deck_ids_used"]
+            deck_id=request.deck_id,
+            deck_id_used=result["deck_id_used"]
         )
         
         return RandomPromptsResponse(
@@ -733,7 +731,7 @@ async def get_random_prompts(
             prompts=result["prompts"],
             correct_index=result["correct_index"],
             correct_prompt=result["correct_prompt"],
-            deck_ids_used=result["deck_ids_used"]
+            deck_id_used=result["deck_id_used"]
         )
         
     except ValueError as e:

@@ -17,9 +17,8 @@ class DrawingAnalysisRequest(BaseModel):
     # Option 1: Explicit options (backward compatibility)
     options: Optional[List[str]] = Field(None, min_items=2, max_items=10, description="Explicit options (optional)")
     
-    # Option 2: Deck-based selection (new approach)
-    deck_ids: Optional[List[int]] = Field(None, description="Deck IDs to select prompts from")
-    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$", description="Filter by difficulty")
+    # Option 2: Single deck selection (new approach)
+    deck_id: Optional[int] = Field(None, description="Single deck ID to use (if not using explicit options)")
     prompt_count: int = Field(4, ge=2, le=10, description="Number of prompts to generate")
     exclude_recent: Optional[List[str]] = Field(None, description="Recently used prompts to exclude")
     
@@ -86,10 +85,9 @@ class UpdateDeckRequest(BaseModel):
 
 
 class DeckSelectionRequest(BaseModel):
-    """Request to get prompts from specific decks"""
+    """Request to get prompts from a single deck"""
     count: int = Field(4, ge=2, le=10, description="Number of prompts to return")
-    deck_ids: Optional[List[int]] = Field(None, description="Specific deck IDs to use")
-    difficulty: Optional[str] = Field(None, pattern="^(easy|medium|hard)$", description="Filter by difficulty")
+    deck_id: int = Field(..., description="Single deck ID to use for the game")
     exclude_recent: Optional[List[str]] = Field(None, description="Recently used prompts to exclude")
 
 
