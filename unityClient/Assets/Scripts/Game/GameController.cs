@@ -285,7 +285,9 @@ namespace Game
         
         private IEnumerator StartGameAfterDelay()
         {
-            yield return new WaitForSeconds(1f);
+            Debug.Log("GameController: Waiting before starting first round...");
+            yield return new WaitForSeconds(2f); // Increased delay to ensure UI is ready
+            Debug.Log("GameController: Starting first round now");
             StartNewRound();
         }
         
@@ -450,16 +452,17 @@ namespace Game
         {
             if (isLocalMode)
             {
-                Debug.Log($"GameController: State transition {localCurrentState} -> {newState}");
+                Debug.Log($"GameController: State transition {localCurrentState} -> {newState} (Local Mode)");
                 var oldState = localCurrentState;
                 localCurrentState = newState;
+                // Make sure to invoke the event for local mode
                 HandleStateChange(oldState, newState);
             }
             else
             {
                 if (!IsServer) return;
                 
-                Debug.Log($"GameController: State transition {currentState.Value} -> {newState}");
+                Debug.Log($"GameController: State transition {currentState.Value} -> {newState} (Network Mode)");
                 currentState.Value = newState;
             }
         }

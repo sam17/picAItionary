@@ -34,8 +34,16 @@ namespace Game
         {
             Debug.Log("GameSpawnManager: Start called");
             
-            // Check if we're in a networked context
-            if (NetworkManager.Singleton != null)
+            // Check if this is a local game (no networking)
+            int gameMode = PlayerPrefs.GetInt("GameMode", 1);
+            bool isLocalMode = gameMode == 0 || isTestLocal;
+            
+            if (isLocalMode)
+            {
+                Debug.Log("GameSpawnManager: Local mode detected, spawning GameController without networking");
+                StartCoroutine(SpawnGameControllerLocalMode());
+            }
+            else if (NetworkManager.Singleton != null)
             {
                 if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
                 {
@@ -49,7 +57,23 @@ namespace Game
             }
             else
             {
-                Debug.LogWarning("GameSpawnManager: NetworkManager not found, cannot spawn GameController");
+                Debug.LogWarning("GameSpawnManager: NetworkManager not found in multiplayer mode, falling back to local");
+                StartCoroutine(SpawnGameControllerLocalMode());
+            }
+        }
+        
+        private IEnumerator SpawnGameControllerLocalMode()
+        {
+            // Wait a frame to ensure everything is ready
+            yield return new WaitForSeconds(0.1f);
+            
+            if (!hasSpawnedGameController && gameControllerPrefab != null)
+            {
+                SpawnGameControllerLocal();
+            }
+            else if (gameControllerPrefab == null)
+            {
+                Debug.LogError("GameSpawnManager: GameController prefab is not assigned!");
             }
         }
         
@@ -66,6 +90,32 @@ namespace Game
             {
                 Debug.LogError("GameSpawnManager: GameController prefab is not assigned!");
             }
+        }
+        
+        private void SpawnGameControllerLocal()
+        {
+            if (hasSpawnedGameController)
+            {
+                Debug.LogWarning("GameSpawnManager: GameController already spawned");
+                return;
+            }
+            
+            Debug.Log("GameSpawnManager: Spawning GameController for local mode");
+            
+            // Instantiate the GameController
+            GameObject gameControllerInstance = Instantiate(gameControllerPrefab);
+            gameControllerInstance.name = "GameController";
+            
+            // Pass the test local setting to the GameController
+            GameController gameController = gameControllerInstance.GetComponent<GameController>();
+            if (gameController != null)
+            {
+                gameController.SetTestLocalMode(true); // Force local mode
+                Debug.Log("GameSpawnManager: Set GameController to local mode");
+            }
+            
+            hasSpawnedGameController = true;
+            Debug.Log("GameSpawnManager: GameController spawned successfully for local play");
         }
         
         private void SpawnGameController()

@@ -59,12 +59,17 @@ namespace UI
             
             isInitialized = true;
             
-            Debug.Log("GameUIManager: Initialized and listening for state changes");
+            Debug.Log($"GameUIManager: Initialized and listening for state changes. Current state: {gameController.CurrentState}");
             
             // Handle initial state if game already started
             if (gameController.CurrentState != GameState.WaitingToStart)
             {
+                Debug.Log($"GameUIManager: Game already in progress, triggering UI update for state: {gameController.CurrentState}");
                 OnGameStateChanged(GameState.WaitingToStart, gameController.CurrentState);
+            }
+            else
+            {
+                Debug.Log("GameUIManager: Game is in WaitingToStart state");
             }
         }
         
@@ -122,18 +127,35 @@ namespace UI
         
         private void ShowDrawerReadyScreen()
         {
+            if (gameController == null)
+            {
+                Debug.LogError("GameUIManager: GameController is null in ShowDrawerReadyScreen!");
+                return;
+            }
+            
             bool isDrawer = gameController.IsLocalPlayerDrawer();
+            Debug.Log($"GameUIManager: ShowDrawerReadyScreen - IsDrawer: {isDrawer}, GameMode: {gameController.CurrentGameMode}");
             
             if (isDrawer)
             {
                 Debug.Log("GameUIManager: Showing drawer ready screen");
+                if (drawerReadyScreen == null)
+                {
+                    Debug.LogError("GameUIManager: drawerReadyScreen is null!");
+                    return;
+                }
+                
                 ShowScreen(drawerReadyScreen);
                 
                 // Update drawer ready screen with info
-                var drawerReady = drawerReadyScreen?.GetComponent<DrawerReadyScreen>();
+                var drawerReady = drawerReadyScreen.GetComponent<DrawerReadyScreen>();
                 if (drawerReady != null)
                 {
                     drawerReady.Setup(gameController);
+                }
+                else
+                {
+                    Debug.LogError("GameUIManager: DrawerReadyScreen component not found on drawerReadyScreen!");
                 }
             }
             else
