@@ -117,7 +117,15 @@ namespace Drawing
         {
             if (Input.GetMouseButtonDown(0))
             {
-                if (hasLifted)
+                if (!hasLifted)
+                {
+                    isDrawing = true;
+                    hasLifted = true;
+                }
+            }
+            else if (Input.GetMouseButtonUp(0))
+            {
+                if (isDrawing && hasLifted)
                 {
                     Debug.Log("DrawingModifierHandler: Pen lifted! Auto-submitting drawing.");
                     var drawingScreen = GetComponentInParent<UI.DrawingScreen>();
@@ -125,14 +133,6 @@ namespace Drawing
                     {
                         drawingScreen.ForceSubmitDrawing();
                     }
-                }
-                isDrawing = true;
-            }
-            else if (Input.GetMouseButtonUp(0))
-            {
-                if (isDrawing)
-                {
-                    hasLifted = true;
                     isDrawing = false;
                 }
             }

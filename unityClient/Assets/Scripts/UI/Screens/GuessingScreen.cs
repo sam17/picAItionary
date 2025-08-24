@@ -181,13 +181,32 @@ namespace UI
                     halfHiddenOverlay.SetActive(true);
                     bool hideLeft = Random.Range(0, 2) == 0;
                     
-                    RectTransform rect = halfHiddenOverlay.GetComponent<RectTransform>();
-                    if (rect != null)
+                    RectTransform overlayRect = halfHiddenOverlay.GetComponent<RectTransform>();
+                    if (overlayRect != null && drawingDisplay != null)
                     {
-                        rect.anchorMin = hideLeft ? new Vector2(0, 0) : new Vector2(0.5f, 0);
-                        rect.anchorMax = hideLeft ? new Vector2(0.5f, 1) : new Vector2(1, 1);
-                        rect.offsetMin = Vector2.zero;
-                        rect.offsetMax = Vector2.zero;
+                        // Make the overlay a child of the drawing display if it isn't already
+                        if (halfHiddenOverlay.transform.parent != drawingDisplay.transform)
+                        {
+                            halfHiddenOverlay.transform.SetParent(drawingDisplay.transform, false);
+                        }
+                        
+                        // Position the overlay to cover half of the drawing image
+                        if (hideLeft)
+                        {
+                            // Hide left half
+                            overlayRect.anchorMin = new Vector2(0, 0);
+                            overlayRect.anchorMax = new Vector2(0.5f, 1);
+                        }
+                        else
+                        {
+                            // Hide right half
+                            overlayRect.anchorMin = new Vector2(0.5f, 0);
+                            overlayRect.anchorMax = new Vector2(1, 1);
+                        }
+                        
+                        // Reset offsets to fill the anchored area
+                        overlayRect.offsetMin = Vector2.zero;
+                        overlayRect.offsetMax = Vector2.zero;
                     }
                 }
                 else
