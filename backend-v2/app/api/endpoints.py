@@ -132,7 +132,7 @@ async def health_check(db: Session = Depends(get_db)):
 async def analyze_drawing(
     request: DrawingAnalysisRequest,
     db: Session = Depends(get_db),
-    # api_key: str = Depends(verify_api_key)  # Temporarily disabled for testing
+    api_key: str = Depends(verify_api_key)
 ):
     """Analyze a drawing using AI with automatic prompt generation from decks"""
     start_time = time.time()
@@ -275,7 +275,7 @@ async def analyze_drawing(
 async def save_game_round(
     request: SaveGameRoundRequest,
     db: Session = Depends(get_db),
-    # api_key: str = Depends(verify_api_key)  # Temporarily disabled for testing
+    api_key: str = Depends(verify_api_key)
 ):
     """Save a complete game round with AI analysis"""
     start_time = time.time()
@@ -397,7 +397,10 @@ async def save_game_round(
 
 
 @router.get("/stats", response_model=GameStatsResponse)
-async def get_game_stats(db: Session = Depends(get_db)):
+async def get_game_stats(
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
     """Get game statistics"""
     start_time = time.time()
     
@@ -422,7 +425,8 @@ async def get_game_stats(db: Session = Depends(get_db)):
 @router.get("/model-comparison", response_model=ModelComparisonResponse)
 async def get_model_comparison(
     days: int = 7,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
 ):
     """Compare AI model performance"""
     start_time = time.time()
@@ -448,7 +452,8 @@ async def get_model_comparison(
 @router.get("/api-performance", response_model=APIPerformanceResponse)
 async def get_api_performance(
     hours: int = 24,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
 ):
     """Get API performance metrics"""
     start_time = time.time()
@@ -472,7 +477,10 @@ async def get_api_performance(
 
 
 @router.get("/prompt-versions", response_model=PromptVersionsResponse)
-async def get_prompt_versions(db: Session = Depends(get_db)):
+async def get_prompt_versions(
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
     """Get available prompt versions"""
     start_time = time.time()
     
@@ -502,7 +510,11 @@ async def get_prompt_versions(db: Session = Depends(get_db)):
 
 
 @router.get("/analysis-logs")
-async def get_analysis_logs(limit: int = 10, db: Session = Depends(get_db)):
+async def get_analysis_logs(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
     """Get recent AI analysis logs for debugging"""
     try:
         logs = db.query(AIAnalysisLog).order_by(AIAnalysisLog.created_at.desc()).limit(limit).all()
@@ -536,7 +548,8 @@ async def get_analysis_logs(limit: int = 10, db: Session = Depends(get_db)):
 @router.get("/decks", response_model=DeckListResponse)
 async def get_all_decks(
     include_inactive: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
 ):
     """Get all available decks"""
     start_time = time.time()
@@ -566,7 +579,8 @@ async def get_all_decks(
 @router.get("/decks/{deck_id}", response_model=DeckWithItemsResponse)
 async def get_deck_with_items(
     deck_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
 ):
     """Get a specific deck with all its items"""
     start_time = time.time()
@@ -829,7 +843,8 @@ async def remove_items_from_deck(
 @router.get("/decks/{deck_id}/stats", response_model=DeckStatsResponse)
 async def get_deck_stats(
     deck_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
 ):
     """Get detailed statistics for a deck"""
     start_time = time.time()
