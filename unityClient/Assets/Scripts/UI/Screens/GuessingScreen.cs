@@ -103,6 +103,36 @@ namespace UI
             Debug.Log($"GuessingScreen: Setup with {options.Count} options");
         }
         
+        private void Update()
+        {
+            // Update timer display using GameController's centralized timer
+            UpdateTimerDisplay();
+        }
+        
+        private void UpdateTimerDisplay()
+        {
+            if (timerText != null && GameController.Instance != null)
+            {
+                float timeRemaining = GameController.Instance.GetTimeRemaining();
+                int seconds = Mathf.CeilToInt(timeRemaining);
+                timerText.text = $"Time: {seconds:00}";
+                
+                // Change color when time is running out
+                if (timeRemaining <= 5f)
+                {
+                    timerText.color = Color.red;
+                }
+                else if (timeRemaining <= 10f)
+                {
+                    timerText.color = Color.yellow;
+                }
+                else
+                {
+                    timerText.color = Color.white;
+                }
+            }
+        }
+        
         private void OnOptionSelected(int index)
         {
             if (hasSubmitted) return;

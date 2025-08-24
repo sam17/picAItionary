@@ -53,6 +53,8 @@ namespace Game
         [SerializeField] private bool testLocal = false;
         [SerializeField] private int localModeRounds = 3;
         [SerializeField] private int multiplayerRounds = 5;
+        [SerializeField] private float drawingTimeLimit = 60f; // 60 seconds to draw
+        [SerializeField] private float guessingTimeLimit = 30f; // 30 seconds to guess
         
         [Header("Network State")]
         private NetworkVariable<GameState> currentState = new NetworkVariable<GameState>(
@@ -87,6 +89,10 @@ namespace Game
             0,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
+        private NetworkVariable<float> stateStartTime = new NetworkVariable<float>(
+            0,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
         
         // Local mode backing fields (for when not using networking)
         private GameState localCurrentState = GameState.WaitingToStart;
@@ -98,6 +104,7 @@ namespace Game
         private int localAiScore = 0;
         private int localCorrectAnswerIndex = 0;
         private bool isLocalMode = false;
+        private float localStateStartTime = 0;
         
         private NetworkList<ulong> playerOrder;
         private int currentTurnIndex = 0;
@@ -120,6 +127,36 @@ namespace Game
         public int PlayersScore => isLocalMode ? localPlayersScore : playersScore.Value;
         public int AiScore => isLocalMode ? localAiScore : aiScore.Value;
         public RoundData CurrentRoundData => currentRoundData;
+        
+        // Timer properties
+        public float GetTimeRemaining()
+        {
+            float startTime = isLocalMode ? localStateStartTime : stateStartTime.Value;
+            float elapsed = Time.time - startTime;
+            
+            switch (CurrentState)
+            {
+                case GameState.Drawing:
+                    return Mathf.Max(0, drawingTimeLimit - elapsed);
+                case GameState.Guessing:
+                    return Mathf.Max(0, guessingTimeLimit - elapsed);
+                default:
+                    return 0;
+            }
+        }
+        
+        public float GetTimeLimit()
+        {
+            switch (CurrentState)
+            {
+                case GameState.Drawing:
+                    return drawingTimeLimit;
+                case GameState.Guessing:
+                    return guessingTimeLimit;
+                default:
+                    return 0;
+            }
+        }
         
         public static GameController Instance { get; private set; }
         
@@ -170,6 +207,123 @@ namespace Game
             {
                 Debug.Log("GameController: Network is active, waiting for OnNetworkSpawn");
                 // GameController will be spawned by GameSpawnManager and OnNetworkSpawn will be called
+            }
+        }
+        
+        private bool timerExpiredForCurrentState = false;
+        
+        private void Update()
+        {
+            // Only server or local mode should check for timer expiration
+            if (!isLocalMode && !IsServer) return;
+            
+            // Check for timer expiration
+            if (CurrentState == GameState.Drawing || CurrentState == GameState.Guessing)
+            {
+                float timeRemaining = GetTimeRemaining();
+                
+                if (timeRemaining <= 0 && !timerExpiredForCurrentState)
+                {
+                    timerExpiredForCurrentState = true;
+                    OnTimerExpired();
+                }
+            }
+        }
+        
+        private void OnTimerExpired()
+        {
+            switch (CurrentState)
+            {
+                case GameState.Drawing:
+                    Debug.Log("GameController: Drawing timer expired, forcing submission");
+                    // Force submit the drawing if nothing was submitted yet
+                    if (currentRoundData != null && currentRoundData.drawingData == null)
+                    {
+                        // Try to get the current drawing from the DrawingScreen
+                        ForceSubmitCurrentDrawing();
+                    }
+                    break;
+                    
+                case GameState.Guessing:
+                    Debug.Log("GameController: Guessing timer expired, processing results");
+                    // Auto-submit random guesses for players who haven't guessed
+                    AutoSubmitMissingGuesses();
+                    // Process results even if not everyone has guessed
+                    ProcessResults();
+                    break;
+            }
+        }
+        
+        private void ForceSubmitCurrentDrawing()
+        {
+            // Only force submit if we are the drawer (or in local mode)
+            if (isLocalMode || IsLocalPlayerDrawer())
+            {
+                // Find the DrawingScreen and get its current drawing data
+                var drawingScreen = FindObjectOfType<UI.DrawingScreen>();
+                if (drawingScreen != null && drawingScreen.gameObject.activeInHierarchy)
+                {
+                    // Call a method to get the drawing data
+                    drawingScreen.ForceSubmitDrawing();
+                }
+                else
+                {
+                    Debug.LogWarning("GameController: DrawingScreen not found or not active, submitting empty drawing");
+                    ProcessDrawingSubmission(new byte[0]);
+                }
+            }
+            else
+            {
+                // For non-drawer clients in multiplayer, just submit empty data
+                // The server should handle the actual drawing submission
+                Debug.Log("GameController: Not the drawer, skipping force submit");
+                if (IsServer)
+                {
+                    ProcessDrawingSubmission(new byte[0]);
+                }
+            }
+        }
+        
+        private void AutoSubmitMissingGuesses()
+        {
+            if (currentRoundData == null) return;
+            
+            var mode = isLocalMode ? localGameMode : gameMode.Value;
+            
+            // In local mode, check if player has guessed
+            if (mode == GameMode.Local)
+            {
+                if (!currentRoundData.playerGuesses.ContainsKey(0))
+                {
+                    // Auto-submit a random guess
+                    int randomGuess = Random.Range(0, currentRoundData.options.Count);
+                    currentRoundData.playerGuesses[0] = randomGuess;
+                    Debug.Log($"GameController: Auto-submitted random guess {randomGuess} for local player");
+                }
+            }
+            else
+            {
+                // In multiplayer, check all non-drawer players
+                foreach (var playerId in playerOrder)
+                {
+                    // Skip the drawer
+                    if (playerId == currentRoundData.drawerId) continue;
+                    
+                    if (!currentRoundData.playerGuesses.ContainsKey(playerId))
+                    {
+                        // Auto-submit a random guess
+                        int randomGuess = Random.Range(0, currentRoundData.options.Count);
+                        currentRoundData.playerGuesses[playerId] = randomGuess;
+                        Debug.Log($"GameController: Auto-submitted random guess {randomGuess} for player {playerId}");
+                    }
+                }
+            }
+            
+            // Make sure AI has also guessed
+            if (currentRoundData.aiGuess < 0)
+            {
+                currentRoundData.aiGuess = Random.Range(0, currentRoundData.options.Count);
+                Debug.Log($"GameController: Auto-submitted random guess {currentRoundData.aiGuess} for AI");
             }
         }
         
@@ -455,6 +609,14 @@ namespace Game
                 Debug.Log($"GameController: State transition {localCurrentState} -> {newState} (Local Mode)");
                 var oldState = localCurrentState;
                 localCurrentState = newState;
+                
+                // Record state start time for timer
+                if (newState == GameState.Drawing || newState == GameState.Guessing)
+                {
+                    localStateStartTime = Time.time;
+                    timerExpiredForCurrentState = false; // Reset timer expiration flag
+                }
+                
                 // Make sure to invoke the event for local mode
                 HandleStateChange(oldState, newState);
             }
@@ -464,6 +626,13 @@ namespace Game
                 
                 Debug.Log($"GameController: State transition {currentState.Value} -> {newState} (Network Mode)");
                 currentState.Value = newState;
+                
+                // Record state start time for timer (server authoritative)
+                if (newState == GameState.Drawing || newState == GameState.Guessing)
+                {
+                    stateStartTime.Value = Time.time;
+                    timerExpiredForCurrentState = false; // Reset timer expiration flag
+                }
             }
         }
         
