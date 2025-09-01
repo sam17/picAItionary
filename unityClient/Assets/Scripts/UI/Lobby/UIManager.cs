@@ -7,6 +7,7 @@ namespace UI.Lobby
     {
         [SerializeField] private Lobby lobby;
         [SerializeField] private GameObject mainMenu;
+        [SerializeField] private GameObject startGameMenu;
         [SerializeField] private GameObject joinMenu;
         [SerializeField] private TMP_InputField joinCodeInputField;
         [SerializeField] private TMP_InputField nameInputField;
