@@ -12,6 +12,7 @@ namespace UI.Lobby
         [SerializeField] private GameObject settingsScreen;
         [SerializeField] private GameObject unlockGameScreen;
         [SerializeField] private GameObject howToPlayScreen;
+        [SerializeField] private GameObject localGameSettingsScreen;
         [SerializeField] private TMP_InputField joinCodeInputField;
         [SerializeField] private TMP_InputField nameInputField;
 
@@ -67,8 +68,22 @@ namespace UI.Lobby
         
         public void OnStartLocalGame()
         {
-            Debug.Log("Starting local game");
-            ConnectionManager.Instance.OnStartLocal();
+            Debug.Log("Showing local game settings");
+            ShowLocalGameSettingsScreen();
+        }
+        
+        public void ShowLocalGameSettingsScreen()
+        {
+            Debug.Log("Showing Local Game Settings Screen");
+            mainMenu.SetActive(false);
+            startGameMenu.SetActive(false);
+            localGameSettingsScreen.SetActive(true);
+            
+            var settingsScreen = localGameSettingsScreen.GetComponent<UI.Screens.LocalGameSettingsScreen>();
+            if (settingsScreen != null)
+            {
+                settingsScreen.ShowScreen();
+            }
         }
 
         public void OnJoinButtonClicked()
@@ -122,6 +137,7 @@ namespace UI.Lobby
             settingsScreen.SetActive(false);
             unlockGameScreen.SetActive(false);
             howToPlayScreen.SetActive(false);
+            localGameSettingsScreen.SetActive(false);
         }
         
         public void BackToStartGameMenu()
