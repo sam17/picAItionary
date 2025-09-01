@@ -9,6 +9,9 @@ namespace UI.Lobby
         [SerializeField] private GameObject mainMenu;
         [SerializeField] private GameObject startGameMenu;
         [SerializeField] private GameObject joinMenu;
+        [SerializeField] private GameObject settingsScreen;
+        [SerializeField] private GameObject unlockGameScreen;
+        [SerializeField] private GameObject howToPlayScreen;
         [SerializeField] private TMP_InputField joinCodeInputField;
         [SerializeField] private TMP_InputField nameInputField;
 
@@ -27,11 +30,39 @@ namespace UI.Lobby
             }
         }
         
+        public void ShowStartGameMenu()
+        {
+            Debug.Log("Showing Start Game Menu");
+            mainMenu.SetActive(false);
+            startGameMenu.SetActive(true);
+        }
+        
         public void ShowJoinMenu()
         {
             Debug.Log("Showing Join Menu");
-            mainMenu.SetActive(false);
+            startGameMenu.SetActive(false);
             joinMenu.SetActive(true);
+        }
+        
+        public void ShowSettingsScreen()
+        {
+            Debug.Log("Showing Settings Screen");
+            mainMenu.SetActive(false);
+            settingsScreen.SetActive(true);
+        }
+        
+        public void ShowUnlockGameScreen()
+        {
+            Debug.Log("Showing Unlock Game Screen");
+            mainMenu.SetActive(false);
+            unlockGameScreen.SetActive(true);
+        }
+        
+        public void ShowHowToPlayScreen()
+        {
+            Debug.Log("Showing How To Play Screen");
+            mainMenu.SetActive(false);
+            howToPlayScreen.SetActive(true);
         }
         
         public void OnStartLocalGame()
@@ -56,6 +87,7 @@ namespace UI.Lobby
             Debug.Log($"Starting lobby for host with join code: {joinCode}");
             lobby.StartLobbyForHost(joinCode);
             mainMenu.SetActive(false);
+            startGameMenu.SetActive(false);
             joinMenu.SetActive(false);
         }
         
@@ -64,6 +96,7 @@ namespace UI.Lobby
             Debug.Log($"Starting lobby for client with join code: {joinCode}");
             lobby.StartLobbyForClient(joinCode);
             mainMenu.SetActive(false);
+            startGameMenu.SetActive(false);
             joinMenu.SetActive(false);
         }
         
@@ -84,7 +117,18 @@ namespace UI.Lobby
         {
             Debug.Log("Returning to main menu");
             mainMenu.SetActive(true);
+            startGameMenu.SetActive(false);
             joinMenu.SetActive(false);
+            settingsScreen.SetActive(false);
+            unlockGameScreen.SetActive(false);
+            howToPlayScreen.SetActive(false);
+        }
+        
+        public void BackToStartGameMenu()
+        {
+            Debug.Log("Returning to Start Game Menu");
+            joinMenu.SetActive(false);
+            startGameMenu.SetActive(true);
         }
        
     }
