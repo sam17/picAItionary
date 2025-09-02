@@ -9,8 +9,8 @@ namespace UI
     {
         [Header("UI Elements")]
         [SerializeField] private TextMeshProUGUI titleText;
-        [SerializeField] private TextMeshProUGUI instructionText;
         [SerializeField] private TextMeshProUGUI modifierText;
+        [SerializeField] private TextMeshProUGUI modifierDescriptionText;
         [SerializeField] private Button startDrawingButton;
         
         private GameController gameController;
@@ -32,21 +32,14 @@ namespace UI
                 titleText.text = "You're the Drawer!";
             }
             
-            if (instructionText != null)
-            {
-                instructionText.text = controller.CurrentGameMode == GameMode.Local ?
-                    "Get ready to draw! You'll see 4 options with one highlighted." :
-                    "Get ready to draw for the other players!";
-            }
-            
             if (modifierText != null && controller.CurrentRoundData != null)
             {
                 var modifier = controller.CurrentRoundData.activeModifier;
                 if (modifier != null)
                 {
                     modifierText.gameObject.SetActive(true);
-                    modifierText.text = $"MODIFIER: {modifier.name}\n{modifier.description}";
-                    modifierText.color = Color.yellow;
+                    modifierText.text = modifier.name;
+                    modifierDescriptionText.text = modifier.description;
                 }
                 else
                 {
