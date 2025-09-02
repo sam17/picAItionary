@@ -12,7 +12,6 @@ namespace UI
         [Header("UI Elements")]
         [SerializeField] private UIDrawingCanvas drawingCanvas;
         [SerializeField] private Button submitButton;
-        [SerializeField] private Button clearButton;
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private TextMeshProUGUI modifierText;
         
@@ -31,11 +30,6 @@ namespace UI
             if (submitButton != null)
             {
                 submitButton.onClick.AddListener(OnSubmitDrawing);
-            }
-            
-            if (clearButton != null)
-            {
-                clearButton.onClick.AddListener(OnClearDrawing);
             }
             
             modifierHandler = GetComponentInChildren<Drawing.DrawingModifierHandler>();
@@ -60,8 +54,7 @@ namespace UI
                 if (modifier != null)
                 {
                     modifierText.gameObject.SetActive(true);
-                    modifierText.text = $"MODIFIER: {modifier.name}\n{modifier.description}";
-                    modifierText.color = Color.yellow;
+                    modifierText.text = modifier.name;
                 }
                 else
                 {
@@ -144,7 +137,7 @@ namespace UI
                 }
                 else
                 {
-                    timerText.color = Color.white;
+                    timerText.color = Color.black;
                 }
             }
         }
@@ -189,11 +182,6 @@ namespace UI
             if (submitButton != null)
             {
                 submitButton.onClick.RemoveListener(OnSubmitDrawing);
-            }
-            
-            if (clearButton != null)
-            {
-                clearButton.onClick.RemoveListener(OnClearDrawing);
             }
         }
     }

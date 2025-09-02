@@ -117,7 +117,7 @@ namespace UI
                 }
                 else
                 {
-                    timerText.color = Color.white;
+                    timerText.color = Color.black;
                 }
             }
         }
