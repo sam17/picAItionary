@@ -330,19 +330,21 @@ namespace Game
             
             Debug.Log($"GameController: Initializing in Local mode (non-networked)");
             
-            // Set total rounds
-            localTotalRounds = localModeRounds;
+            // Set total rounds from PlayerPrefs (with fallback to localModeRounds)
+            localTotalRounds = PlayerPrefs.GetInt("LocalGameRounds", localModeRounds);
+            Debug.Log($"GameController: Local mode total rounds set to {localTotalRounds}");
             
             // Reset scores
             localPlayersScore = 0;
             localAiScore = 0;
             localCurrentRound = 0;
             
-            // Initialize modifiers
+            // Initialize modifiers from PlayerPrefs
+            bool useModifiers = PlayerPrefs.GetInt("LocalGameModifiers", 0) == 1;
             if (Modifiers.ModifierManager.Instance != null)
             {
-                Modifiers.ModifierManager.Instance.SetModifiersEnabled(modifiersEnabled);
-                Debug.Log($"GameController: Modifiers enabled: {modifiersEnabled}");
+                Modifiers.ModifierManager.Instance.SetModifiersEnabled(useModifiers);
+                Debug.Log($"GameController: Modifiers enabled: {useModifiers}");
             }
             
             // Setup single player
